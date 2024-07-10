@@ -330,8 +330,8 @@ class badgeslib_test extends advanced_testcase {
         $message = array_pop($messages);
         // Check we have the expected data.
         $customdata = json_decode($message->customdata);
-        $this->assertObjectHasAttribute('notificationiconurl', $customdata);
-        $this->assertObjectHasAttribute('hash', $customdata);
+        $this->assertObjectHasProperty('notificationiconurl', $customdata);
+        $this->assertObjectHasProperty('hash', $customdata);
 
         $user2 = $this->getDataGenerator()->create_user();
         $badge->issue($user2->id, true);
@@ -912,7 +912,6 @@ class badgeslib_test extends advanced_testcase {
         core_badges_myprofile_navigation($tree, $this->user, $iscurrentuser, $course);
         $reflector = new ReflectionObject($tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('localbadges', $nodes->getValue($tree));
     }
 
@@ -935,7 +934,6 @@ class badgeslib_test extends advanced_testcase {
         core_badges_myprofile_navigation($tree, $this->user, $iscurrentuser, $course);
         $reflector = new ReflectionObject($tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayNotHasKey('localbadges', $nodes->getValue($tree));
     }
 
@@ -954,7 +952,6 @@ class badgeslib_test extends advanced_testcase {
         core_badges_myprofile_navigation($tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new ReflectionObject($tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('localbadges', $nodes->getValue($tree));
     }
 

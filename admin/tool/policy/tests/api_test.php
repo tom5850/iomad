@@ -37,7 +37,7 @@ class api_test extends \advanced_testcase {
 
         // Prepare the form data for adding a new policy document.
         $formdata = api::form_policydoc_data(new policy_version(0));
-        $this->assertObjectHasAttribute('name', $formdata);
+        $this->assertObjectHasProperty('name', $formdata);
         $this->assertArrayHasKey('text', $formdata->summary_editor);
         $this->assertArrayHasKey('format', $formdata->content_editor);
 
@@ -579,7 +579,7 @@ class api_test extends \advanced_testcase {
      * Test that accepting policy updates 'policyagreed'
      */
     public function test_accept_policies() {
-        global $DB;
+        global $DB, $USER;
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -621,6 +621,12 @@ class api_test extends \advanced_testcase {
         api::decline_policies([$policy3->id]);
         $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
 
+        api::accept_policies([$policy3->id]);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
+
+        // Ensure policies are always accepted when all are responded regardless the $USER->policyagreed value.
+        $USER->policyagreed = 1;
+        $DB->set_field('user', 'policyagreed', 0, ['id' => $user2->id]);
         api::accept_policies([$policy3->id]);
         $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
     }

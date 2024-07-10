@@ -89,7 +89,6 @@ class pgsql_native_moodle_database_test extends \advanced_testcase {
         global $DB;
         $reflector = new ReflectionClass($DB);
         $property = $reflector->getProperty('inorequaluniqueindex');
-        $property->setAccessible(true);
         return (int) $property->getValue($DB);
     }
 
@@ -390,7 +389,6 @@ class pgsql_native_moodle_database_test extends \advanced_testcase {
 
         $reflector = new ReflectionClass($db2);
         $rp = $reflector->getProperty('pgsql');
-        $rp->setAccessible(true);
         return $rp->getValue($db2);
     }
 
@@ -411,7 +409,8 @@ class pgsql_native_moodle_database_test extends \advanced_testcase {
             // ... or fail with SSL not supported.
             $this->assertStringContainsString($pgconnerr, $e->debuginfo);
             $this->assertStringContainsString('server does not support SSL', $e->debuginfo);
-            $this->markTestIncomplete('SSL not supported.');
+            $this->markTestSkipped('Postgres server does not support SSL. Unable to complete the test.');
+            return;
         }
 
         try {

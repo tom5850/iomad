@@ -6,11 +6,11 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
 
   Background:
     Given the following "courses" exist:
-      | fullname | shortname | category | enablecompletion |
-      | Course 1 | C1        | 0        | 1                |
+      | fullname | shortname | category | enablecompletion | numsections |
+      | Course 1 | C1        | 0        | 1                | 1           |
     And the following "users" exist:
       | username | firstname | lastname | email |
-      | teacher1 | Teacher | Frist | teacher1@example.com |
+      | teacher1 | Teacher | First | teacher1@example.com |
     And the following "course enrolments" exist:
       | user     | course | role           |
       | teacher1 | C1     | editingteacher |
@@ -29,15 +29,21 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
     And I set the field "Course completion tertiary navigation" to "Default activity completion"
     And I click on "Expand Assignment" "button"
     And I set the following fields to these values:
-      | Add requirements         | 1                  |
-      | completionview_assign     | 0                                                 |
-      | completionusegrade_assign | 1                                                 |
-      | completionsubmit_assign   | 1                                                 |
+      | id_completion_assign_2    | 1 |
+      | completionview_assign     | 1 |
+      | completionusegrade_assign | 1 |
+      | completionsubmit_assign   | 1 |
     And I should not see "Cancel" in the "[data-region='activitycompletion-forum']" "css_element"
     And I click on "Save changes" "button" in the "[data-region='activitycompletion-assign']" "css_element"
     Then I should see "Changes saved"
+    And I navigate to "Course completion" in current page administration
+    And I set the field "Course completion tertiary navigation" to "Default activity completion"
+    And I click on "Expand Assignment" "button"
+    And I set the following fields to these values:
+      | completionview_assign     | 0 |
+    And I click on "Save changes" "button" in the "[data-region='activitycompletion-assign']" "css_element"
     And I am on "Course 1" course homepage with editing mode on
-    And I press "Add an activity or resource"
+    And I click on "Add an activity or resource" "button" in the "New section" "section"
     And I click on "Add a new Assignment" "link" in the "Add an activity or resource" "dialogue"
     And I expand all fieldsets
     # Completion tracking 2 = Add requirements.
@@ -77,7 +83,7 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
     And I click on "Save changes" "button" in the "[data-region='activitycompletion-forum']" "css_element"
     Then I should see "Changes saved"
     And I am on "Course 1" course homepage with editing mode on
-    And I press "Add an activity or resource"
+    And I click on "Add an activity or resource" "button" in the "New section" "section"
     And I click on "Add a new Forum" "link" in the "Add an activity or resource" "dialogue"
     And I expand all fieldsets
     # Completion tracking 2 = Add requirements.
@@ -116,7 +122,7 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
     And I click on "Save changes" "button" in the "[data-region='activitycompletion-glossary']" "css_element"
     Then I should see "Changes saved"
     And I am on "Course 1" course homepage with editing mode on
-    And I press "Add an activity or resource"
+    And I click on "Add an activity or resource" "button" in the "New section" "section"
     And I click on "Add a new Glossary" "link" in the "Add an activity or resource" "dialogue"
     And I expand all fieldsets
     # Completion tracking 2 = Add requirements.
@@ -157,7 +163,7 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
     And I set the following fields to these values:
       | id_completion_scorm_2              | 1 |
       | completionview_scorm               | 0 |
-      | completionscoredisabled            | 1 |
+      | completionscoreenabled_scorm       | 1 |
       | completionscorerequired_scorm      | 3 |
       | completionstatusrequired_scorm[2]  | 1 |
       | completionstatusrequired_scorm[4]  | 0 |
@@ -169,16 +175,16 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
       | completion_book         | Do not indicate activity completion                 |
     And I click on "Save changes" "button" in the "[data-region='activitycompletion-book']" "css_element"
     And I should see "Changes saved"
-    And I click on "Expand Chat" "button"
+    And I click on "Expand Lesson" "button"
     And I set the following fields to these values:
     # Students must manually mark the activity as done = 1.
-      | id_completion_chat_1         | 1  |
-    And I click on "Save changes" "button" in the "[data-region='activitycompletion-chat']" "css_element"
+      | id_completion_lesson_1         | 1  |
+    And I click on "Save changes" "button" in the "[data-region='activitycompletion-lesson']" "css_element"
     And I should see "Changes saved"
     # Change current page and go back to "Default activity completion", to confirm the form values have been saved properly.
     And I set the field "Course completion tertiary navigation" to "Course completion settings"
     And I set the field "Course completion tertiary navigation" to "Default activity completion"
-    Then the field "id_completion_chat_1" matches value "1"
+    Then the field "id_completion_lesson_1" matches value "1"
     # Check that the rules for book, assignment and forum are still the same.
     And I click on "Expand Book" "button"
     And the field "id_completion_book_0" matches value "1"
@@ -187,14 +193,17 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
     And the field "completionview_assign" matches value "0"
     And the field "completionusegrade_assign" matches value "0"
     And the field "completionsubmit_assign" matches value "1"
+    And I click on "Expand Forum" "button"
     And the field "id_completion_forum_2" matches value "1"
     And the field "completionview_forum" matches value "0"
     And the field "completionpostsenabled_forum" matches value "1"
     And the field "completionposts_forum" matches value "3"
     And the field "completiondiscussionsenabled_forum" matches value "0"
     And the field "completionrepliesenabled_forum" matches value "0"
+    And I click on "Expand SCORM package" "button"
     And the field "id_completion_scorm_2" matches value "1"
     And the field "completionview_scorm" matches value "0"
+    And the field "completionscoreenabled_scorm" matches value "1"
     And the field "completionscorerequired_scorm" matches value "3"
     And the field "completionstatusrequired_scorm[2]" matches value "1"
     And the field "completionstatusrequired_scorm[4]" matches value "0"
@@ -218,4 +227,11 @@ Feature: Allow teachers to edit the default activity completion rules in a cours
     Given I am on the "Course 1" course page logged in as teacher1
     When I navigate to "Course completion" in current page administration
     And I set the field "Course completion tertiary navigation" to "Default activity completion"
-    Then "Survey" "text" should appear before "Text and media area" "text"
+    Then "Quiz" "text" should appear before "Text and media area" "text"
+
+  @accessibility
+  Scenario: Evaluate the accessibility of the default activity completion page
+    Given I am on the "Course 1" course page logged in as "teacher1"
+    When I navigate to "Course completion" in current page administration
+    And I set the field "Course completion tertiary navigation" to "Default activity completion"
+    And the page should meet accessibility standards

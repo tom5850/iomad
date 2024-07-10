@@ -656,9 +656,9 @@ class grouplib_test extends \advanced_testcase {
         // Get the data.
         $data = groups_get_course_data($course->id);
         $this->assertInstanceOf('stdClass', $data);
-        $this->assertObjectHasAttribute('groups', $data);
-        $this->assertObjectHasAttribute('groupings', $data);
-        $this->assertObjectHasAttribute('mappings', $data);
+        $this->assertObjectHasProperty('groups', $data);
+        $this->assertObjectHasProperty('groupings', $data);
+        $this->assertObjectHasProperty('mappings', $data);
 
         // Test we have the expected items returns.
         $this->assertCount(4, $data->groups);
@@ -1755,6 +1755,8 @@ class grouplib_test extends \advanced_testcase {
 
     /**
      * Tests for groups_get_groups_members() method.
+     *
+     * @covers ::groups_get_groups_members
      */
     public function test_groups_get_groups_members() {
         $this->resetAfterTest(true);
@@ -1817,10 +1819,9 @@ class grouplib_test extends \advanced_testcase {
         $members = groups_get_groups_members([$group3->id]);
         $this->assertCount(0, $members);
 
-        // Test groups_get_members.
-        $members = groups_get_members($group2->id, 'u.*', 'u.id ASC');
-        $this->assertCount(2, $members);
-        $this->assertEquals([$user1->id, $user2->id], array_keys($members));
+        // Our second group.
+        $members = groups_get_groups_members([$group2->id]);
+        $this->assertEqualsCanonicalizing([$user1->id, $user2->id], array_column($members, 'id'));
 
         // Test the info matches group membership for the entire course.
         $groups  = groups_get_all_groups($course2->id, 0, 0, 'g.*', true);
@@ -2108,6 +2109,12 @@ class grouplib_test extends \advanced_testcase {
         // Own groups - should see all groups except group with visibility::NONE.
         $usergroups1 = groups_get_user_groups($course->id, $users[1]->id);
         $this->assertEquals([$groups['all']->id, $groups['members']->id, $groups['own']->id], $usergroups1[0]);
+        // Own groups including hidden - should see all groups.
+        $usergroups1hidden = groups_get_user_groups($course->id, $users[1]->id, true);
+        $this->assertEquals(
+            [$groups['all']->id, $groups['members']->id, $groups['own']->id, $groups['none']->id],
+            $usergroups1hidden[0]
+        );
         // Fellow member of a group with visiblity::MEMBERS. Should see that group.
         $usergroups2 = groups_get_user_groups($course->id, $users[2]->id);
         $this->assertEquals([$groups['members']->id], $usergroups2[0]);
@@ -2117,6 +2124,9 @@ class grouplib_test extends \advanced_testcase {
         // Fellow member of a group with visiblity::NONE. Should not see that group.
         $usergroups4 = groups_get_user_groups($course->id, $users[4]->id);
         $this->assertEmpty($usergroups4[0]);
+        // Fellow member of a group with visiblity::NONE including hidden. Should see that group.
+        $usergroups4hidden = groups_get_user_groups($course->id, $users[4]->id, true);
+        $this->assertEquals([$groups['none']->id], $usergroups4hidden[0]);
 
         // Run as a user with viewhiddengroups. Should see all group memberships for each member.
         $this->setUser($users[5]);
@@ -2183,9 +2193,33 @@ class grouplib_test extends \advanced_testcase {
     }
 
     /**
+     * Test groups_get_members
+     *
+     * @covers ::groups_get_members
+     */
+    public function test_groups_get_members(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $userone = $this->getDataGenerator()->create_and_enrol($course);
+        $usertwo = $this->getDataGenerator()->create_and_enrol($course);
+
+        $group = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $group->id, 'userid' => $userone->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $group->id, 'userid' => $usertwo->id]);
+
+        $users = groups_get_members($group->id);
+        $this->assertEqualsCanonicalizing([$userone->id, $usertwo->id], array_column($users, 'id'));
+
+        // Test invalid group.
+        $users = groups_get_members(-1);
+        $this->assertEmpty($users);
+    }
+
+    /**
      * Test groups_get_members() using groups with different visibility settings.
      *
-     * @covers \groups_get_members()
+     * @covers ::groups_get_members
      */
     public function test_groups_get_members_with_visibility(): void {
         list($users, $groups) = $this->create_groups_with_visibilty();

@@ -47,7 +47,7 @@ class plugin_test extends \advanced_testcase {
 
         $this->cfields[1] = $this->get_generator()->create_field(
             ['categoryid' => $this->cfcat->get('id'), 'shortname' => 'myfield1', 'type' => 'text',
-                'configdata' => ['maxlength' => 30, 'displaysize' => 50]]);
+                'configdata' => ['maxlength' => 30, 'displaysize' => 50], 'description' => null]);
         $this->cfields[2] = $this->get_generator()->create_field(
             ['categoryid' => $this->cfcat->get('id'), 'shortname' => 'myfield2', 'type' => 'text',
                 'configdata' => ['required' => 1, 'maxlength' => 30, 'displaysize' => 50]]);
@@ -74,7 +74,7 @@ class plugin_test extends \advanced_testcase {
      * Get generator
      * @return core_customfield_generator
      */
-    protected function get_generator() : core_customfield_generator {
+    protected function get_generator(): core_customfield_generator {
         return $this->getDataGenerator()->get_plugin_generator('core_customfield');
     }
 

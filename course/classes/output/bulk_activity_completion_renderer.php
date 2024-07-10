@@ -14,13 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Contains renderers for the bulk activity completion stuff.
- *
- * @package core_course
- * @copyright 2017 Adrian Greeve
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+use core_completion\manager;
 
 defined('MOODLE_INTERNAL') || die;
 
@@ -36,24 +30,10 @@ require_once($CFG->dirroot.'/course/renderer.php');
 class core_course_bulk_activity_completion_renderer extends plugin_renderer_base {
 
     /**
-     * Render the navigation tabs for the completion page.
-     *
      * @deprecated since Moodle 4.0
-     * @param int|stdClass $courseorid the course object or id.
-     * @param String $page the tab to focus.
-     * @return string html
      */
-    public function navigation($courseorid, $page) {
-        debugging('navigation() has been deprecated as the tabs navigation structure in the completion page ' .
-            'has been replaced with tertiary navigation. Please use render_course_completion_action_bar() instead.',
-            DEBUG_DEVELOPER);
-
-        $tabs = core_completion\manager::get_available_completion_tabs($courseorid);
-        if (count($tabs) > 1) {
-            return $this->tabtree($tabs, $page);
-        } else {
-            return '';
-        }
+    public function navigation() {
+        throw new coding_exception(__FUNCTION__ . '() has been removed.');
     }
 
     /**
@@ -96,7 +76,18 @@ class core_course_bulk_activity_completion_renderer extends plugin_renderer_base
                     );
                     $module->modulecollapsed = true;
                 }
-                $module->formhtml = $modform->render();
+
+                $moduleform = manager::get_module_form($module->name, $course);
+                if ($moduleform) {
+                    $module->formhtml = $modform->render();
+                } else {
+                    // If the module form is not available, then display a message.
+                    $module->formhtml = $this->output->notification(
+                        get_string('incompatibleplugin', 'completion'),
+                        \core\output\notification::NOTIFY_INFO,
+                        false
+                    );
+                }
             }
         }
         $data->issite = $course->id == SITEID;

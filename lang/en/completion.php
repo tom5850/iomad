@@ -92,7 +92,7 @@ $string['completionanygrade_desc'] = 'Any grade';
 $string['completiondisabled'] = 'Disabled, not shown in activity settings';
 $string['completionenabled'] = 'Enabled, control via completion and activity settings';
 $string['completionexpected'] = 'Set reminder in Timeline';
-$string['completionexpected_help'] = 'This allows you to set a reminder for students to work on this activity. It will appear on the Timeline block in their Dashboard as "{$a} requires action"';
+$string['completionexpected_help'] = 'This allows you to set a reminder for students to work on this activity. It will appear in the Timeline block on their Dashboard as "{$a} requires action".';
 $string['completionexpecteddesc'] = 'Completion expected on {$a}';
 $string['completionexpectedfor'] = '{$a->instancename} should be completed';
 $string['completionicons'] = 'Completion tick boxes';
@@ -176,6 +176,7 @@ $string['failed'] = 'Failed';
 $string['fraction'] = 'Fraction';
 $string['graderequired'] = 'Required course grade';
 $string['gradexrequired'] = '{$a} required';
+$string['incompatibleplugin'] = 'This activity does not support default completion settings. Completion conditions must be manually set for each use.';
 $string['inprogress'] = 'In progress';
 $string['manual'] = 'Manual';
 $string['manualcompletionby'] = 'Manual completion by others';
@@ -254,9 +255,6 @@ $string['withconditions'] = 'With conditions';
 $string['writingcompletiondata'] = 'Writing completion data';
 $string['xdays'] = '{$a} days';
 $string['youmust'] = 'You must';
-
-// Deprecated since Moodle 4.0.
-$string['yourprogress'] = 'Your progress';
 
 // Deprecated since Moodle 4.3.
 $string['editcoursecompletionsettings'] = 'Edit course completion settings';

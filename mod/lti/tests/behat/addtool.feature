@@ -27,7 +27,7 @@ Feature: Add tools
   Scenario: Add a site tool via the activity picker
     Given I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on
-    When I add a "Teaching Tool 1" to section "1"
+    When I add a "Teaching Tool 1" to section "1" using the activity chooser
     And I set the field "Activity name" to "Test tool activity 1"
     And "Launch container" "field" should not be visible
     # For tool that does not support Content-Item message type, the Select content button must be disabled.
@@ -44,7 +44,7 @@ Feature: Add tools
   Scenario: Add a course tool via the activity picker
     Given I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on
-    When I add a "Course tool 1" to section "1"
+    When I add a "Course tool 1" to section "1" using the activity chooser
     And I set the field "Activity name" to "Test tool activity 2"
     And "Launch container" "field" should not be visible
     # For tool that does not support Content-Item message type, the Select content button must be disabled.
@@ -89,7 +89,8 @@ Feature: Add tools
     And the "id_showtitlelaunch" "checkbox" should be enabled
     And the "id_showdescriptionlaunch" "checkbox" should be enabled
     And the "Secure tool URL" "field" should be disabled
-    And the "Consumer key" "field" should be disabled
+    And the "Consumer key" "field" should be enabled
+    And the "Shared secret" "field" should be enabled
     And I click on "Reveal" "icon"
     And I should see "secret"
     And the "Custom parameters" "field" should be disabled
@@ -104,6 +105,8 @@ Feature: Add tools
     And I set the following fields to these values:
     | Activity name      | A manual tool name edited |
     | id_showdescription | 1                         |
+    | Consumer key       | key                       |
+    | Shared secret      | secret                    |
     And I press "Save and return to course"
     And I am on the "A manual tool" "lti activity editing" page logged in as teacher1
     And I follow "Show more..."
@@ -112,7 +115,8 @@ Feature: Add tools
     And the following fields match these values:
     | Activity name                    | A manual tool name edited                     |
     | id_showdescription               | 1                                             |
-    | Consumer key                     | 12345                                         |
+    | Consumer key                     | key                                           |
+    | Shared secret                    | secret                                        |
     | Icon URL                         | http://download.moodle.org/unittest/test.jpg  |
     | Secure icon URL                  | https://download.moodle.org/unittest/test.jpg |
     | Tool URL                         | http://www.example.com/lti/provider.php       |
@@ -125,7 +129,8 @@ Feature: Add tools
     And the "id_showtitlelaunch" "checkbox" should be enabled
     And the "id_showdescriptionlaunch" "checkbox" should be enabled
     And the "Secure tool URL" "field" should be disabled
-    And the "Consumer key" "field" should be disabled
+    And the "Consumer key" "field" should be enabled
+    And the "Shared secret" "field" should be enabled
     And I click on "Reveal" "icon"
     And I should see "secret"
     And the "Custom parameters" "field" should be disabled

@@ -155,7 +155,6 @@ class outputrequirementslib_test extends \advanced_testcase {
         $CFG->slasharguments = $cfgslashargs;
         $rc = new \ReflectionClass(\page_requirements_manager::class);
         $rcm = $rc->getMethod('js_fix_url');
-        $rcm->setAccessible(true);
         $requires = new \page_requirements_manager();
         $actualmoodleurl = $rcm->invokeArgs($requires, [$moodleurl]);
         $this->assertEquals($expected, $actualmoodleurl->out(false));
@@ -239,7 +238,6 @@ class outputrequirementslib_test extends \advanced_testcase {
         $CFG->slasharguments = $cfgslashargs;
         $rc = new \ReflectionClass(\page_requirements_manager::class);
         $rcm = $rc->getMethod('js_fix_url');
-        $rcm->setAccessible(true);
         $requires = new \page_requirements_manager();
         $actualmoodleurl = $rcm->invokeArgs($requires, [$url]);
         $this->assertEquals($expected, $actualmoodleurl->out(false));
@@ -264,16 +262,6 @@ class outputrequirementslib_test extends \advanced_testcase {
                 '/admin/environment.xml',
                 0,
                 $wwwroot . $admin . 'environment.xml'
-            ],
-            'Course Format JS (slasharguments on)' => [
-                '/course/format/topics/format.js',
-                1,
-                $wwwroot . '/lib/javascript.php/1/course/format/topics/format.js'
-            ],
-            'Course Format JS (slasharguments off)' => [
-                '/course/format/topics/format.js',
-                0,
-                $wwwroot . '/lib/javascript.php?rev=1&jsfile=%2Fcourse%2Fformat%2Ftopics%2Fformat.js'
             ],
             'Data JS' => [
                 '/mod/data/data.js',
@@ -326,7 +314,6 @@ class outputrequirementslib_test extends \advanced_testcase {
     public function test_js_fix_url_coding_exception($url, string $exmessage) {
         $rc = new \ReflectionClass(\page_requirements_manager::class);
         $rcm = $rc->getMethod('js_fix_url');
-        $rcm->setAccessible(true);
         $requires = new \page_requirements_manager();
         $this->expectException(\coding_exception::class);
         $this->expectExceptionMessage($exmessage);

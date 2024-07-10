@@ -258,7 +258,9 @@ class core_course_external extends external_api {
 
                         $modcontext = context_module::instance($cm->id);
 
-                        //common info (for people being able to see the module or availability dates)
+                        $isbranded = component_callback('mod_' . $cm->modname, 'is_branded', [], false);
+
+                        // Common info (for people being able to see the module or availability dates).
                         $module['id'] = $cm->id;
                         $module['name'] = \core_external\util::format_string($cm->name, $modcontext);
                         $module['instance'] = $cm->instance;
@@ -266,6 +268,8 @@ class core_course_external extends external_api {
                         $module['modname'] = (string) $cm->modname;
                         $module['modplural'] = (string) $cm->modplural;
                         $module['modicon'] = $cm->get_icon_url()->out(false);
+                        $module['purpose'] = plugin_supports('mod', $cm->modname, FEATURE_MOD_PURPOSE, MOD_PURPOSE_OTHER);
+                        $module['branded'] = $isbranded;
                         $module['indent'] = $cm->indent;
                         $module['onclick'] = $cm->onclick;
                         $module['afterlink'] = $cm->afterlink;
@@ -461,6 +465,9 @@ class core_course_external extends external_api {
                                         VALUE_OPTIONAL),
                                     'modicon' => new external_value(PARAM_URL, 'activity icon url'),
                                     'modname' => new external_value(PARAM_PLUGIN, 'activity module type'),
+                                    'purpose' => new external_value(PARAM_ALPHA, 'the module purpose'),
+                                    'branded' => new external_value(PARAM_BOOL, 'Whether the module is branded or not',
+                                        VALUE_OPTIONAL),
                                     'modplural' => new external_value(PARAM_TEXT, 'activity module plural name'),
                                     'availability' => new external_value(PARAM_RAW, 'module availability settings', VALUE_OPTIONAL),
                                     'indent' => new external_value(PARAM_INT, 'number of identation in the site'),
@@ -819,6 +826,26 @@ class core_course_external extends external_api {
     }
 
     /**
+     * Return array of all editable course custom fields indexed by their shortname
+     *
+     * @param \context $context
+     * @param int $courseid
+     * @return \core_customfield\field_controller[]
+     */
+    public static function get_editable_customfields(\context $context, int $courseid = 0): array {
+        $result = [];
+
+        $handler = \core_course\customfield\course_handler::create();
+        $handler->set_parent_context($context);
+
+        foreach ($handler->get_editable_fields($courseid) as $field) {
+            $result[$field->get('shortname')] = $field;
+        }
+
+        return $result;
+    }
+
+    /**
      * Returns description of method parameters
      *
      * @return external_function_parameters
@@ -990,8 +1017,13 @@ class core_course_external extends external_api {
 
             // Custom fields.
             if (!empty($course['customfields'])) {
+                $customfields = self::get_editable_customfields($context);
                 foreach ($course['customfields'] as $field) {
-                    $course['customfield_'.$field['shortname']] = $field['value'];
+                    if (array_key_exists($field['shortname'], $customfields)) {
+                        // Ensure we're populating the element form fields correctly.
+                        $controller = \core_customfield\data_controller::create(0, null, $customfields[$field['shortname']]);
+                        $course[$controller->get_form_element_name()] = $field['value'];
+                    }
                 }
             }
 
@@ -1203,10 +1235,15 @@ class core_course_external extends external_api {
                     }
                 }
 
-                // Prepare list of custom fields.
+                // Custom fields.
                 if (isset($course['customfields'])) {
+                    $customfields = self::get_editable_customfields($context, $course['id']);
                     foreach ($course['customfields'] as $field) {
-                        $course['customfield_' . $field['shortname']] = $field['value'];
+                        if (array_key_exists($field['shortname'], $customfields)) {
+                            // Ensure we're populating the element form fields correctly.
+                            $controller = \core_customfield\data_controller::create(0, null, $customfields[$field['shortname']]);
+                            $course[$controller->get_form_element_name()] = $field['value'];
+                        }
                     }
                 }
 
@@ -2202,6 +2239,19 @@ class core_course_external extends external_api {
             self::validate_context($categorycontext);
             require_capability('moodle/category:manage', $categorycontext);
 
+            // If the category parent is being changed, check for capability in the new parent category
+            if (isset($cat['parent']) && ($cat['parent'] !== $category->parent)) {
+                if ($cat['parent'] == 0) {
+                    // Creating a top level category requires capability in the system context
+                    $parentcontext = context_system::instance();
+                } else {
+                    // Category context
+                    $parentcontext = context_coursecat::instance($cat['parent']);
+                }
+                self::validate_context($parentcontext);
+                require_capability('moodle/category:manage', $parentcontext);
+            }
+
             // this will throw an exception if descriptionformat is not valid
             util::validate_format($cat['descriptionformat']);
 
@@ -2645,6 +2695,9 @@ class core_course_external extends external_api {
         if ($params['onlywithcompletion']) {
             $searchcriteria['onlywithcompletion'] = true;
         }
+        if ($params['limittoenrolled']) {
+            $searchcriteria['limittoenrolled'] = true;
+        }
 
         $options = array();
         if ($params['perpage'] != 0) {
@@ -2656,23 +2709,10 @@ class core_course_external extends external_api {
         $courses = core_course_category::search_courses($searchcriteria, $options, $params['requiredcapabilities']);
         $totalcount = core_course_category::search_courses_count($searchcriteria, $options, $params['requiredcapabilities']);
 
-        if (!empty($limittoenrolled)) {
-            // Get the courses where the current user has access.
-            $enrolled = enrol_get_my_courses(array('id', 'cacherev'));
-        }
-
         $finalcourses = array();
         $categoriescache = array();
 
         foreach ($courses as $course) {
-            if (!empty($limittoenrolled)) {
-                // Filter out not enrolled courses.
-                if (!isset($enrolled[$course->id])) {
-                    $totalcount--;
-                    continue;
-                }
-            }
-
             $coursecontext = context_course::instance($course->id);
 
             $finalcourses[] = self::get_course_public_information($course, $coursecontext);
@@ -2780,6 +2820,8 @@ class core_course_external extends external_api {
                     ),
                     'Additional options for particular course format.', VALUE_OPTIONAL
                 ),
+                'communicationroomname' => new external_value(PARAM_TEXT, 'Communication tool room name.', VALUE_OPTIONAL),
+                'communicationroomurl' => new external_value(PARAM_RAW, 'Communication tool room URL.', VALUE_OPTIONAL),
             );
             $coursestructure = array_merge($coursestructure, $extra);
         }
@@ -3260,6 +3302,8 @@ class core_course_external extends external_api {
             }
         }
 
+        $iscommapiavailable = \core_communication\api::is_available();
+
         $coursesdata = array();
         foreach ($courses as $course) {
             $context = context_course::instance($course->id);
@@ -3320,6 +3364,21 @@ class core_course_external extends external_api {
                     'name' => $key,
                     'value' => $value
                 );
+            }
+
+            // Communication tools for the course.
+            if ($iscommapiavailable) {
+                $communication = \core_communication\api::load_by_instance(
+                    context: $context,
+                    component: 'core_course',
+                    instancetype: 'coursecommunication',
+                    instanceid: $course->id
+                );
+                if ($communication->get_provider()) {
+                    $coursesdata[$course->id]['communicationroomname'] = \core_external\util::format_string($communication->get_room_name(), $context);
+                    // This will be usually an URL, however, it is better to consider that can be anything a plugin might return, this is why we will use PARAM_RAW.
+                    $coursesdata[$course->id]['communicationroomurl'] = $communication->get_communication_room_url();
+                }
             }
         }
 
@@ -3605,8 +3664,8 @@ class core_course_external extends external_api {
         $coursecontext = context_course::instance($course->id);
         self::validate_context($modcontext);
         $format = course_get_format($course);
-        if ($sectionreturn) {
-            $format->set_section_number($sectionreturn);
+        if (!is_null($sectionreturn)) {
+            $format->set_sectionnum($sectionreturn);
         }
         $renderer = $format->get_renderer($PAGE);
 
@@ -3733,8 +3792,8 @@ class core_course_external extends external_api {
         self::validate_context(context_course::instance($course->id));
 
         $format = course_get_format($course);
-        if ($sectionreturn) {
-            $format->set_section_number($sectionreturn);
+        if (!is_null($sectionreturn)) {
+            $format->set_sectionnum($sectionreturn);
         }
         $renderer = $format->get_renderer($PAGE);
 
@@ -3826,6 +3885,11 @@ class core_course_external extends external_api {
                     VALUE_DEFAULT, null),
                 'searchvalue' => new external_value(PARAM_RAW, 'The value a user wishes to search against',
                     VALUE_DEFAULT, null),
+                'requiredfields' => new core_external\external_multiple_structure(
+                    new external_value(PARAM_ALPHANUMEXT, 'Field name to be included from the results', VALUE_DEFAULT),
+                    'Array of the only field names that need to be returned. If empty, all fields will be returned.',
+                    VALUE_DEFAULT, []
+                ),
             )
         );
     }
@@ -3844,15 +3908,15 @@ class core_course_external extends external_api {
      * c1 is skipped (because the offset applies *before* the classification filtering)
      * and c4 and c5 will be return.
      *
-     * @param  string $classification past, inprogress, or future
-     * @param  int $limit Result set limit
-     * @param  int $offset Offset the full course set before timeline classification is applied
-     * @param  string $sort SQL sort string for results
-     * @param  string $customfieldname
-     * @param  string $customfieldvalue
-     * @param  string $searchvalue
+     * @param string $classification past, inprogress, or future
+     * @param int $limit Result set limit
+     * @param int $offset Offset the full course set before timeline classification is applied
+     * @param string|null $sort SQL sort string for results
+     * @param string|null $customfieldname
+     * @param string|null $customfieldvalue
+     * @param string|null $searchvalue
+     * @param array $requiredfields Array of the only field names that need to be returned. If empty, all fields will be returned.
      * @return array list of courses and warnings
-     * @throws  invalid_parameter_exception
      */
     public static function get_enrolled_courses_by_timeline_classification(
         string $classification,
@@ -3861,7 +3925,8 @@ class core_course_external extends external_api {
         string $sort = null,
         string $customfieldname = null,
         string $customfieldvalue = null,
-        string $searchvalue = null
+        string $searchvalue = null,
+        array $requiredfields = []
     ) {
         global $CFG, $PAGE, $USER;
         require_once($CFG->dirroot . '/course/lib.php');
@@ -3874,6 +3939,7 @@ class core_course_external extends external_api {
                 'sort' => $sort,
                 'customfieldvalue' => $customfieldvalue,
                 'searchvalue' => $searchvalue,
+                'requiredfields' => $requiredfields,
             )
         );
 
@@ -3883,6 +3949,7 @@ class core_course_external extends external_api {
         $sort = $params['sort'];
         $customfieldvalue = $params['customfieldvalue'];
         $searchvalue = clean_param($params['searchvalue'], PARAM_TEXT);
+        $requiredfields = $params['requiredfields'];
 
         switch($classification) {
             case COURSE_TIMELINE_ALLINCLUDINGHIDDEN:
@@ -3908,11 +3975,16 @@ class core_course_external extends external_api {
         }
 
         self::validate_context(context_user::instance($USER->id));
+        $exporterfields = array_keys(course_summary_exporter::define_properties());
+        // Get the required properties from the exporter fields based on the required fields.
+        $requiredproperties = array_intersect($exporterfields, $requiredfields);
+        // If the resulting required properties is empty, fall back to the exporter fields.
+        if (empty($requiredproperties)) {
+            $requiredproperties = $exporterfields;
+        }
 
-        $requiredproperties = course_summary_exporter::define_properties();
-        $fields = join(',', array_keys($requiredproperties));
+        $fields = join(',', $requiredproperties);
         $hiddencourses = get_hidden_courses_on_timeline();
-        $courses = [];
 
         // If the timeline requires really all courses, get really all courses.
         if ($classification == COURSE_TIMELINE_ALLINCLUDINGHIDDEN) {

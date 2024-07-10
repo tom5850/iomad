@@ -28,6 +28,13 @@ use ltiservice_gradebookservices\local\service\gradebookservices;
  * @coversDefaultClass \mod_lti\service\gradebookservices\local\gradebookservices
  */
 class gradebookservices_test extends \advanced_testcase {
+    /**
+     * Load the necessary libs for the tests.
+     */
+    public static function setUpBeforeClass(): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/lti/locallib.php');
+    }
 
     /**
      * @covers ::instance_added
@@ -37,9 +44,6 @@ class gradebookservices_test extends \advanced_testcase {
      * that can be retrieved using the gradebook service API.
      */
     public function test_lti_add_coupled_lineitem() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/lti/locallib.php');
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -75,9 +79,6 @@ class gradebookservices_test extends \advanced_testcase {
      * that can be retrieved using the gradebook service API.
      */
     public function test_lti_add_coupled_lineitem_default_subreview() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/lti/locallib.php');
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -128,9 +129,6 @@ class gradebookservices_test extends \advanced_testcase {
      * the line items should be actually passed.
      */
     public function test_get_launch_parameters_coupled() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/lti/locallib.php');
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -162,9 +160,6 @@ class gradebookservices_test extends \advanced_testcase {
      * launch is submission review.
      */
     public function test_get_launch_parameters_coupled_subreview_override() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/lti/locallib.php');
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -193,9 +188,6 @@ class gradebookservices_test extends \advanced_testcase {
      * launch is submission review.
      */
     public function test_get_launch_parameters_coupled_subreview_override_default() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/lti/locallib.php');
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -224,9 +216,6 @@ class gradebookservices_test extends \advanced_testcase {
      * if there is a single line item attached to that lti instance.
      */
     public function test_get_launch_parameters_decoupled() {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/lti/locallib.php');
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -288,7 +277,7 @@ class gradebookservices_test extends \advanced_testcase {
      */
     private function assert_lineitems(object $course, int $typeid,
             string $label, ?object $ltiinstance, ?string $resourceid, ?string $tag,
-            ?string $subreviewurl = null, ?string $subreviewparams = null) : void {
+            ?string $subreviewurl = null, ?string $subreviewparams = null): void {
         $gbservice = new gradebookservices();
         $gradeitems = $gbservice->get_lineitems($course->id, null, null, null, null, null, $typeid);
 
@@ -347,7 +336,7 @@ class gradebookservices_test extends \advanced_testcase {
      * @return object lti instance created
      */
     private function create_graded_lti(int $typeid, object $course, ?string $resourceid, ?string $tag,
-            ?string $subreviewurl = null, ?string $subreviewparams = null) : object {
+            ?string $subreviewurl = null, ?string $subreviewparams = null): object {
 
         $lti = ['course' => $course->id,
             'typeid' => $typeid,
@@ -369,7 +358,7 @@ class gradebookservices_test extends \advanced_testcase {
       *
       * @return object lti instance created
       */
-    private function create_notgraded_lti(int $typeid, object $course) : object {
+    private function create_notgraded_lti(int $typeid, object $course): object {
 
         $lti = ['course' => $course->id,
             'typeid' => $typeid,
@@ -389,7 +378,7 @@ class gradebookservices_test extends \advanced_testcase {
      *
      */
     private function create_standalone_lineitem(int $courseid, int $typeid, ?string $resourceid,
-            ?string $tag, int $ltiinstanceid = null) : void {
+            ?string $tag, int $ltiinstanceid = null): void {
         $gbservice = new gradebookservices();
         $gbservice->add_standalone_lineitem($courseid,
             "manualtest",

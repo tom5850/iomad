@@ -216,7 +216,7 @@ class tool_generator_course_backend extends tool_generator_backend {
      * @return int Course id
      */
     public function make() {
-        global $DB, $CFG;
+        global $DB, $CFG, $USER;
         require_once($CFG->dirroot . '/lib/phpunit/classes/util.php');
 
         raise_memory_limit(MEMORY_EXTRA);
@@ -252,8 +252,15 @@ class tool_generator_course_backend extends tool_generator_backend {
             }
         }
 
+        // We are checking 'enroladminnewcourse' setting to decide to enrol admins or not.
+        if (!empty($CFG->creatornewroleid) && !empty($CFG->enroladminnewcourse) && is_siteadmin($USER->id)) {
+            // Deal with course creators - enrol them internally with default role.
+            enrol_try_internal_enrol($this->course->id, $USER->id, $CFG->creatornewroleid);
+        }
+
         // Log total time.
         $this->log('coursecompleted', round(microtime(true) - $entirestart, 1));
+        $this->end_log();
 
         if ($this->progress && !CLI_SCRIPT) {
             echo html_writer::end_tag('ul');
@@ -280,7 +287,9 @@ class tool_generator_course_backend extends tool_generator_backend {
             $courserecord['summary_format'] = $this->summaryformat;
         }
 
-        return $this->generator->create_course($courserecord, array('createsections' => true));
+        $return = $this->generator->create_course($courserecord, array('createsections' => true));
+        $this->end_log();
+        return $return;
     }
 
     /**
@@ -297,6 +306,7 @@ class tool_generator_course_backend extends tool_generator_backend {
         // Get existing users in order. We will 'fill up holes' in this up to
         // the required number.
         $this->log('checkaccounts', $count);
+        $this->end_log();
         $nextnumber = 1;
         $rs = $DB->get_recordset_select('user', $DB->sql_like('username', '?'),
                 array('tool_generator_%'), 'username', 'id, username');

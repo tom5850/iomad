@@ -16,11 +16,6 @@
 
 namespace core;
 
-defined('MOODLE_INTERNAL') || die();
-
-global $CFG;
-require_once($CFG->dirroot . '/lib/myprofilelib.php');
-
 /**
  * Tests for myprofilelib apis.
  *
@@ -44,6 +39,16 @@ class myprofilelib_test extends \advanced_testcase {
      * @var \core_user\output\myprofile\tree The navigation tree.
      */
     private $tree;
+
+    /**
+     * Load required test libraries
+     */
+    public static function setUpBeforeClass(): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/lib/myprofilelib.php');
+        require_once($CFG->dirroot . '/user/profile/lib.php');
+    }
+
     public function setUp(): void {
         // Set the $PAGE->url value so core_myprofile_navigation() doesn't complain.
         global $PAGE;
@@ -66,7 +71,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new \ReflectionObject($this->tree);
         $categories = $reflector->getProperty('categories');
-        $categories->setAccessible(true);
         $cats = $categories->getValue($this->tree);
         $this->assertArrayHasKey('contact', $cats);
         $this->assertArrayHasKey('coursedetails', $cats);
@@ -76,7 +80,6 @@ class myprofilelib_test extends \advanced_testcase {
         $this->assertArrayHasKey('loginactivity', $cats);
 
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('fullprofile', $nodes->getValue($this->tree));
     }
 
@@ -92,7 +95,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayNotHasKey('fullprofile', $nodes->getValue($this->tree));
     }
 
@@ -106,7 +108,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('editprofile', $nodes->getValue($this->tree));
     }
 
@@ -120,7 +121,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('editprofile', $nodes->getValue($this->tree));
     }
 
@@ -134,7 +134,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('preferences', $nodes->getValue($this->tree));
         $this->assertArrayHasKey('loginas', $nodes->getValue($this->tree));
     }
@@ -151,7 +150,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, $this->course);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayNotHasKey('loginas', $nodes->getValue($this->tree));
     }
 
@@ -189,7 +187,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, null);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         foreach ($hiddenfields as $field) {
             $this->assertArrayHasKey($field, $nodes->getValue($this->tree));
         }
@@ -214,7 +211,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, null);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         foreach ($hiddenfields as $field) {
             $this->assertArrayNotHasKey($field, $nodes->getValue($this->tree));
         }
@@ -262,7 +258,6 @@ class myprofilelib_test extends \advanced_testcase {
 
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
 
         /** @var \core_user\output\myprofile\node[] $tree */
         $tree = $nodes->getValue($this->tree);
@@ -286,7 +281,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, null);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayHasKey('firstaccess', $nodes->getValue($this->tree));
         $this->assertArrayHasKey('lastaccess', $nodes->getValue($this->tree));
         $this->assertArrayHasKey('lastip', $nodes->getValue($this->tree));
@@ -305,7 +299,6 @@ class myprofilelib_test extends \advanced_testcase {
         core_myprofile_navigation($this->tree, $this->user, $iscurrentuser, null);
         $reflector = new \ReflectionObject($this->tree);
         $nodes = $reflector->getProperty('nodes');
-        $nodes->setAccessible(true);
         $this->assertArrayNotHasKey('firstaccess', $nodes->getValue($this->tree));
         $this->assertArrayNotHasKey('lastaccess', $nodes->getValue($this->tree));
         $this->assertArrayNotHasKey('lastip', $nodes->getValue($this->tree));

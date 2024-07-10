@@ -307,13 +307,13 @@ if (!$csv) {
     print $pagingbar;
 
     if (!$total) {
-        echo $OUTPUT->heading(get_string('nothingtodisplay'), 2);
+        echo $OUTPUT->notification(get_string('nothingtodisplay'), 'info', false);
         echo $OUTPUT->footer();
         exit;
     }
 
     print '<table id="completion-progress" class="table table-bordered generaltable flexible boxaligncenter
-        completionreport" style="text-align: left" cellpadding="5" border="1">';
+        completionreport" cellpadding="5" border="1">';
 
     // Print criteria group names
     print PHP_EOL.'<thead><tr style="vertical-align: top">';

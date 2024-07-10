@@ -150,33 +150,21 @@ function user_create_user($user, $updatepassword = true, $triggerevent = true) {
  *             This will not affect user_password_updated event triggering.
  */
 function user_update_user($user, $updatepassword = true, $triggerevent = true) {
-    global $DB, $CFG;
+    global $DB;
 
     // Set the timecreate field to the current time.
     if (!is_object($user)) {
         $user = (object) $user;
     }
 
-    // Communication api update for user.
-    if (core_communication\api::is_available()) {
-        $usercourses = enrol_get_users_courses($user->id);
-        $currentrecord = $DB->get_record('user', ['id' => $user->id]);
-        if (!empty($currentrecord) && isset($user->suspended) && $currentrecord->suspended !== $user->suspended) {
-            foreach ($usercourses as $usercourse) {
-                $communication = \core_communication\api::load_by_instance(
-                    'core_course',
-                    'coursecommunication',
-                    $usercourse->id
-                );
-                // If the record updated the suspended for a user.
-                if ($user->suspended === 0) {
-                    $communication->add_members_to_room([$user->id]);
-                } else if ($user->suspended === 1) {
-                    $communication->remove_members_from_room([$user->id]);
-                }
-            }
-        }
-    }
+    $currentrecord = $DB->get_record('user', ['id' => $user->id]);
+
+    // Dispatch the hook for pre user update actions.
+    $hook = new \core_user\hook\before_user_updated(
+        user: $user,
+        currentuserdata: $currentrecord,
+    );
+    \core\di::get(\core\hook\manager::class)->dispatch($hook);
 
     // Check username.
     if (isset($user->username)) {
@@ -207,7 +195,12 @@ function user_update_user($user, $updatepassword = true, $triggerevent = true) {
         unset($user->calendartype);
     }
 
-    $user->timemodified = time();
+    // Delete theme usage cache if the theme has been changed.
+    if (isset($user->theme)) {
+        if ($user->theme != $currentrecord->theme) {
+            theme_delete_used_in_context_cache($user->theme, $currentrecord->theme);
+        }
+    }
 
     // Validate user data object.
     $uservalidation = core_user::validate($user);
@@ -218,17 +211,36 @@ function user_update_user($user, $updatepassword = true, $triggerevent = true) {
         }
     }
 
-    $DB->update_record('user', $user);
+    $changedattributes = [];
+    foreach ($user as $attributekey => $attributevalue) {
+        // We explicitly want to ignore 'timemodified' attribute for checking, if an update is needed.
+        if (!property_exists($currentrecord, $attributekey) || $attributekey === 'timemodified') {
+            continue;
+        }
+        if ($currentrecord->{$attributekey} != $attributevalue) {
+            $changedattributes[$attributekey] = $attributevalue;
+        }
+    }
+    if (!empty($changedattributes)) {
+        $changedattributes['timemodified'] = time();
+        $updaterecord = (object) $changedattributes;
+        $updaterecord->id = $currentrecord->id;
+        $DB->update_record('user', $updaterecord);
+    }
 
     if ($updatepassword) {
-        // Get full user record.
-        $updateduser = $DB->get_record('user', array('id' => $user->id));
+        // If there have been changes, update user record with changed attributes.
+        if (!empty($changedattributes)) {
+            foreach ($changedattributes as $attributekey => $attributevalue) {
+                $currentrecord->{$attributekey} = $attributevalue;
+            }
+        }
 
         // If password was set, then update its hash.
         if (isset($passwd)) {
-            $authplugin = get_auth_plugin($updateduser->auth);
+            $authplugin = get_auth_plugin($currentrecord->auth);
             if ($authplugin->can_change_password()) {
-                $authplugin->user_update_password($updateduser, $passwd);
+                $authplugin->user_update_password($currentrecord, $passwd);
             }
         }
     }
@@ -274,7 +286,7 @@ function user_get_default_fields() {
         'institution', 'interests', 'firstaccess', 'lastaccess', 'auth', 'confirmed',
         'idnumber', 'lang', 'theme', 'timezone', 'mailformat', 'description', 'descriptionformat',
         'city', 'country', 'profileimageurlsmall', 'profileimageurl', 'customfields',
-        'groups', 'roles', 'preferences', 'enrolledcourses', 'suspended', 'lastcourseaccess'
+        'groups', 'roles', 'preferences', 'enrolledcourses', 'suspended', 'lastcourseaccess', 'trackforums',
     );
 }
 
@@ -380,10 +392,9 @@ function user_get_user_details($user, $course = null, array $userfields = array(
         $userdetails['customfields'] = array();
         foreach ($categories as $categoryid => $fields) {
             foreach ($fields as $formfield) {
-                if ($formfield->is_visible() and !$formfield->is_empty()) {
-
+                if ($formfield->show_field_content()) {
                     $userdetails['customfields'][] = [
-                        'name' => $formfield->field->name,
+                        'name' => $formfield->display_name(),
                         'value' => $formfield->data,
                         'displayvalue' => $formfield->display_data(),
                         'type' => $formfield->field->datatype,
@@ -587,7 +598,7 @@ function user_get_user_details($user, $course = null, array $userfields = array(
     }
 
     if ($currentuser or has_capability('moodle/user:viewalldetails', $context)) {
-        $extrafields = ['auth', 'confirmed', 'lang', 'theme', 'mailformat'];
+        $extrafields = ['auth', 'confirmed', 'lang', 'theme', 'mailformat', 'trackforums'];
         foreach ($extrafields as $extrafield) {
             if (in_array($extrafield, $userfields) && isset($user->$extrafield)) {
                 $userdetails[$extrafield] = $user->$extrafield;
@@ -711,13 +722,7 @@ function user_count_login_failures($user, $reset = true) {
  * @return array
  */
 function user_convert_text_to_menu_items($text, $page) {
-    global $OUTPUT, $CFG;
-
     $lines = explode("\n", $text);
-    $items = array();
-    $lastchild = null;
-    $lastdepth = null;
-    $lastsort = 0;
     $children = array();
     foreach ($lines as $line) {
         $line = trim($line);
@@ -745,8 +750,9 @@ function user_convert_text_to_menu_items($text, $page) {
         // Name processing.
         $namebits = explode(',', $bits[0], 2);
         if (count($namebits) == 2) {
+            $namebits[1] = $namebits[1] ?: 'core';
             // Check the validity of the identifier part of the string.
-            if (clean_param($namebits[0], PARAM_STRINGID) !== '') {
+            if (clean_param($namebits[0], PARAM_STRINGID) !== '' && clean_param($namebits[1], PARAM_COMPONENT) !== '') {
                 // Treat this as a language string.
                 $child->title = get_string($namebits[0], $namebits[1]);
                 $child->titleidentifier = implode(',', $namebits);

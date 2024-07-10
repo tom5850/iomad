@@ -78,7 +78,7 @@ class qformat_xml_import_export_test extends advanced_testcase {
      */
     protected function normalise_xml($xml) {
         // Normalise line endings.
-        $xml = str_replace("\r\n", "\n", $xml);
+        $xml = phpunit_util::normalise_line_endings($xml);
         $xml = preg_replace("~\n$~", "", $xml); // Strip final newline in file.
 
         // Replace all numbers in question id comments with 0.
@@ -233,6 +233,31 @@ class qformat_xml_import_export_test extends advanced_testcase {
         $this->assert_question_in_category('Tau Question', 'Tau');
         $this->assert_category_has_parent('Sigma', 'top');
         $this->assert_category_has_parent('Tau', 'Sigma');
+    }
+
+    /**
+     * Check exception when importing questions with invalid grades.
+     *
+     * @covers \qformat_default::importprocess
+     */
+    public function test_import_invalid_grades(): void {
+        global $OUTPUT;
+
+        $this->resetAfterTest(true);
+        $course = $this->getDataGenerator()->create_course();
+        $this->setAdminUser();
+        $qformat = $this->create_qformat('error_invalid_grades.xml', $course);
+
+        ob_start();
+        $imported = $qformat->importprocess();
+        $output = ob_get_clean();
+
+        $a = ['grades' => '0.33', 'question' => 'Question with invalid grades : x > 1 & x < 2'];
+        $expectedoutput = $OUTPUT->notification(get_string('invalidgradequestion', 'question', $a));
+        $expectedoutput .= $OUTPUT->notification(get_string('importparseerror', 'question'));
+
+        $this->assertFalse($imported);
+        $this->assertEquals($expectedoutput, $output);
     }
 
     /**

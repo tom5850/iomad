@@ -308,7 +308,7 @@ class mod_workshop_renderer extends plugin_renderer_base {
 
             if ($phase->active) {
                 // Mark the section as the current one.
-                $icon = $this->output->pix_icon('i/marked', '', 'moodle', ['role' => 'presentation']);
+                $icon = $this->output->pix_icon('i/marked', '');
                 $actions .= get_string('userplancurrentphase', 'workshop').' '.$icon;
 
             } else {
@@ -431,7 +431,7 @@ class mod_workshop_renderer extends plugin_renderer_base {
         $userinfo   = $data->userinfo;
 
         if (empty($grades)) {
-            return $this->output->notification(get_string('nothingtodisplay'), 'success', false);
+            return $this->output->notification(get_string('nothingtodisplay'), 'info', false);
         }
 
         $table = new html_table();
@@ -1417,7 +1417,8 @@ class mod_workshop_renderer extends plugin_renderer_base {
                         $output .= $this->render($pagingbar);
                         $output .= $this->perpage_selector($perpage);
                     } else {
-                        $output .= html_writer::tag('div', get_string('nothingfound', 'workshop'), ['class' => 'nothingfound']);
+                        $output .= html_writer::tag('div', get_string('nothingfound', 'workshop'),
+                            'info', false);
                     }
                     $output .= print_collapsible_region_end(true);
                 }

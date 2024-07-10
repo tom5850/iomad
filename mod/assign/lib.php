@@ -1400,6 +1400,8 @@ function assign_pluginfile($course,
 function mod_assign_output_fragment_gradingpanel($args) {
     global $CFG;
 
+    \core\session\manager::write_close(); // No changes to session in this function.
+
     $context = $args['context'];
 
     if ($context->contextlevel != CONTEXT_MODULE) {
@@ -1584,6 +1586,14 @@ function mod_assign_core_calendar_provide_event_action(calendar_event $event,
             return null;
         }
 
+        $instance = $assign->get_instance();
+        if ($instance->teamsubmission && !$instance->requireallteammemberssubmit) {
+            $groupsubmission = $assign->get_group_submission($userid, 0, false);
+            if ($groupsubmission && $groupsubmission->status === ASSIGN_SUBMISSION_STATUS_SUBMITTED) {
+                return null;
+            }
+        }
+
         $participant = $assign->get_participant($userid);
 
         if (!$participant) {
@@ -1744,24 +1754,29 @@ function mod_assign_core_calendar_event_timestart_updated(\calendar_event $event
 /**
  * Return a list of all the user preferences used by mod_assign.
  *
- * @return array
+ * @uses core_user::is_current_user
+ *
+ * @return array[]
  */
-function mod_assign_user_preferences() {
+function mod_assign_user_preferences(): array {
     $preferences = array();
     $preferences['assign_filter'] = array(
         'type' => PARAM_ALPHA,
         'null' => NULL_NOT_ALLOWED,
-        'default' => ''
+        'default' => '',
+        'permissioncallback' => [core_user::class, 'is_current_user'],
     );
     $preferences['assign_workflowfilter'] = array(
         'type' => PARAM_ALPHA,
         'null' => NULL_NOT_ALLOWED,
-        'default' => ''
+        'default' => '',
+        'permissioncallback' => [core_user::class, 'is_current_user'],
     );
     $preferences['assign_markerfilter'] = array(
         'type' => PARAM_ALPHANUMEXT,
         'null' => NULL_NOT_ALLOWED,
-        'default' => ''
+        'default' => '',
+        'permissioncallback' => [core_user::class, 'is_current_user'],
     );
 
     return $preferences;
@@ -1774,7 +1789,7 @@ function mod_assign_user_preferences() {
  * @param  array  $args The path (the part after the filearea and before the filename).
  * @return array The itemid and the filepath inside the $args path, for the defined filearea.
  */
-function mod_assign_get_path_from_pluginfile(string $filearea, array $args) : array {
+function mod_assign_get_path_from_pluginfile(string $filearea, array $args): array {
     // Assign never has an itemid (the number represents the revision but it's not stored in database).
     array_shift($args);
 

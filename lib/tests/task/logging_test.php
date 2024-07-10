@@ -442,7 +442,7 @@ class logging_test extends \advanced_testcase {
      *
      * @return  adhoc_task
      */
-    protected function get_test_adhoc_task() : adhoc_task {
+    protected function get_test_adhoc_task(): adhoc_task {
         $task = $this->getMockForAbstractClass(adhoc_task::class);
         $task->set_component('core');
 
@@ -460,7 +460,7 @@ class logging_test extends \advanced_testcase {
      *
      * @return  scheduled_task
      */
-    protected function get_test_scheduled_task() : scheduled_task {
+    protected function get_test_scheduled_task(): scheduled_task {
         $task = $this->getMockForAbstractClass(scheduled_task::class);
 
         // Mock a lock on the task.
@@ -485,7 +485,7 @@ class logging_test extends \advanced_testcase {
 
         // Note PHPUnit does not support mocking static functions.
         $CFG->task_log_class = logging_test_mocked_logger::class;
-        logging_test_mocked_logger::test_reset();
+        logging_test_mocked_logger::reset_test();
 
         return $CFG->task_log_class;
     }
@@ -533,7 +533,7 @@ class logging_test_mocked_logger implements task_logger {
     /**
      * Reset the test class.
      */
-    public static function test_reset() {
+    public static function reset_test() {
         self::$isconfigured = true;
         self::$storelogfortask = [];
         self::$haslogreport = true;
@@ -544,7 +544,7 @@ class logging_test_mocked_logger implements task_logger {
      *
      * @return  bool
      */
-    public static function is_configured() : bool {
+    public static function is_configured(): bool {
         return self::$isconfigured;
     }
 
@@ -569,7 +569,7 @@ class logging_test_mocked_logger implements task_logger {
      *
      * @return  bool
      */
-    public static function has_log_report() : bool {
+    public static function has_log_report(): bool {
         return self::$haslogreport;
     }
 
@@ -579,7 +579,7 @@ class logging_test_mocked_logger implements task_logger {
      * @param   string      $classname The task class to fetch for
      * @return  \moodle_url
      */
-    public static function get_url_for_task_class(string $classname) : \moodle_url {
+    public static function get_url_for_task_class(string $classname): \moodle_url {
         return new \moodle_url('');
     }
 

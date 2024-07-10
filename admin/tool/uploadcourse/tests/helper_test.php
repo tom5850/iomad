@@ -107,6 +107,7 @@ class helper_test extends \advanced_testcase {
 
     public function test_get_restore_content_dir() {
         global $CFG;
+        require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
         $this->resetAfterTest(true);
         $this->setAdminUser();
 
@@ -381,12 +382,15 @@ class helper_test extends \advanced_testcase {
 
         $c1 = $this->getDataGenerator()->create_category(array('idnumber' => 'C1'));
         $c2 = $this->getDataGenerator()->create_category(array('idnumber' => 'C2'));
+        $c3 = $this->getDataGenerator()->create_category(['idnumber' => 'C3', 'visible' => false]);
 
         // Doubled for cache check.
         $this->assertEquals($c1->id, tool_uploadcourse_helper::resolve_category_by_idnumber('C1'));
         $this->assertEquals($c1->id, tool_uploadcourse_helper::resolve_category_by_idnumber('C1'));
         $this->assertEquals($c2->id, tool_uploadcourse_helper::resolve_category_by_idnumber('C2'));
         $this->assertEquals($c2->id, tool_uploadcourse_helper::resolve_category_by_idnumber('C2'));
+        $this->assertEmpty(tool_uploadcourse_helper::resolve_category_by_idnumber('C3'));
+        $this->assertEmpty(tool_uploadcourse_helper::resolve_category_by_idnumber('C3'));
         $this->assertEmpty(tool_uploadcourse_helper::resolve_category_by_idnumber('DoesNotExist'));
         $this->assertEmpty(tool_uploadcourse_helper::resolve_category_by_idnumber('DoesNotExist'));
     }
@@ -436,8 +440,8 @@ class helper_test extends \advanced_testcase {
 
         // Hidden parent.
         $path = array('Cat 2', 'Cat 2.1', 'Cat 2.1.2');
-        $this->assertEquals($cat2_1_2->id, tool_uploadcourse_helper::resolve_category_by_path($path));
-        $this->assertEquals($cat2_1_2->id, tool_uploadcourse_helper::resolve_category_by_path($path));
+        $this->assertEmpty(tool_uploadcourse_helper::resolve_category_by_path($path));
+        $this->assertEmpty(tool_uploadcourse_helper::resolve_category_by_path($path));
 
         // Does not exist.
         $path = array('No cat 3', 'Cat 1.2');
@@ -467,7 +471,7 @@ class helper_test extends \advanced_testcase {
      *
      * @return core_customfield_generator
      */
-    protected function get_customfield_generator() : \core_customfield_generator {
+    protected function get_customfield_generator(): \core_customfield_generator {
         return $this->getDataGenerator()->get_plugin_generator('core_customfield');
     }
 
@@ -481,7 +485,7 @@ class helper_test extends \advanced_testcase {
      * @return \core_customfield\field_controller
      */
     protected function create_custom_field(\core_customfield\category_controller $category, string $type, string $shortname,
-            array $configdata = []) : \core_customfield\field_controller {
+            array $configdata = []): \core_customfield\field_controller {
 
         return $this->get_customfield_generator()->create_field([
             'categoryid' => $category->get('id'),

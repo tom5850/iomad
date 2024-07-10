@@ -23,6 +23,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\plugininfo\enrol;
+
 defined('MOODLE_INTERNAL') || die();
 
 
@@ -952,26 +954,26 @@ class enrollib_test extends advanced_testcase {
         $this->assertEquals([$course1->id, $course2->id, $course3->id], array_keys($courses));
 
         // Check fields parameter still works. Fields default (certain base fields).
-        $this->assertObjectHasAttribute('id', $courses[$course3->id]);
-        $this->assertObjectHasAttribute('shortname', $courses[$course3->id]);
-        $this->assertObjectNotHasAttribute('summary', $courses[$course3->id]);
+        $this->assertObjectHasProperty('id', $courses[$course3->id]);
+        $this->assertObjectHasProperty('shortname', $courses[$course3->id]);
+        $this->assertObjectNotHasProperty('summary', $courses[$course3->id]);
 
         // Specified fields (one, string).
         $courses = enrol_get_my_courses('summary', 'id', 0, [], true);
-        $this->assertObjectHasAttribute('id', $courses[$course3->id]);
-        $this->assertObjectHasAttribute('shortname', $courses[$course3->id]);
-        $this->assertObjectHasAttribute('summary', $courses[$course3->id]);
-        $this->assertObjectNotHasAttribute('summaryformat', $courses[$course3->id]);
+        $this->assertObjectHasProperty('id', $courses[$course3->id]);
+        $this->assertObjectHasProperty('shortname', $courses[$course3->id]);
+        $this->assertObjectHasProperty('summary', $courses[$course3->id]);
+        $this->assertObjectNotHasProperty('summaryformat', $courses[$course3->id]);
 
         // Specified fields (two, string).
         $courses = enrol_get_my_courses('summary, summaryformat', 'id', 0, [], true);
-        $this->assertObjectHasAttribute('summary', $courses[$course3->id]);
-        $this->assertObjectHasAttribute('summaryformat', $courses[$course3->id]);
+        $this->assertObjectHasProperty('summary', $courses[$course3->id]);
+        $this->assertObjectHasProperty('summaryformat', $courses[$course3->id]);
 
         // Specified fields (two, array).
         $courses = enrol_get_my_courses(['summary', 'summaryformat'], 'id', 0, [], true);
-        $this->assertObjectHasAttribute('summary', $courses[$course3->id]);
-        $this->assertObjectHasAttribute('summaryformat', $courses[$course3->id]);
+        $this->assertObjectHasProperty('summary', $courses[$course3->id]);
+        $this->assertObjectHasProperty('summaryformat', $courses[$course3->id]);
 
         // By default, courses are ordered by sortorder - which by default is most recent first.
         $courses = enrol_get_my_courses(null, null, 0, [], true);
@@ -1105,6 +1107,43 @@ class enrollib_test extends advanced_testcase {
         $manualplugin->update_user_enrol($manualinstance, $user1->id, ENROL_USER_SUSPENDED);
         $this->assertCount(2, enrol_get_course_users($course1->id, false));
         $this->assertCount(1, enrol_get_course_users($course1->id, true));
+    }
+
+    /**
+     * test_course_users in groups
+     *
+     * @covers \enrol_get_course_users()
+     * @return void
+     */
+    public function test_course_users_in_groups() {
+        $this->resetAfterTest();
+
+        $user1 = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user();
+        $user3 = $this->getDataGenerator()->create_user();
+        $course = $this->getDataGenerator()->create_course();
+        $group1 = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
+        $group2 = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
+
+        $this->getDataGenerator()->enrol_user($user1->id, $course->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course->id);
+        $this->getDataGenerator()->enrol_user($user3->id, $course->id);
+
+        $this->getDataGenerator()->create_group_member(['groupid' => $group1->id, 'userid' => $user1->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $group2->id, 'userid' => $user1->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $group2->id, 'userid' => $user2->id]);
+
+        $this->assertCount(3, enrol_get_course_users($course->id));
+        $this->assertCount(1, enrol_get_course_users($course->id, false, [], [], [$group1->id]));
+        $this->assertCount(2, enrol_get_course_users($course->id, false, [], [], [$group2->id]));
+
+        $instances = enrol_get_instances($course->id, true);
+        $manualinstance = reset($instances);
+
+        $manualplugin = enrol_get_plugin('manual');
+        $manualplugin->update_user_enrol($manualinstance, $user1->id, ENROL_USER_SUSPENDED);
+        $this->assertCount(2, enrol_get_course_users($course->id, false, [], [], [$group2->id]));
+        $this->assertCount(1, enrol_get_course_users($course->id, true, [], [], [$group2->id]));
     }
 
     /**
@@ -1695,5 +1734,97 @@ class enrollib_test extends advanced_testcase {
         $this->assertFalse(enrol_selfenrol_available($course->id));
         $this->setUser($user2);
         $this->assertFalse(enrol_selfenrol_available($course->id));
+    }
+
+    /**
+     * Test the behaviour of validate_enrol_plugin_data().
+     *
+     * @covers ::validate_enrol_plugin_data
+     */
+    public function test_validate_enrol_plugin_data(): void {
+        $this->resetAfterTest();
+
+        // Plugin is disabled in system.
+        enrol::enable_plugin('manual', false);
+        $manualplugin = enrol_get_plugin('manual');
+
+        $enrolmentdata = [];
+        $errors = $manualplugin->validate_enrol_plugin_data($enrolmentdata);
+        $this->assertArrayHasKey('plugindisabled', $errors);
+        $this->assertArrayNotHasKey('errorunsupportedmethod', $errors);
+
+        $categoryplugin = enrol_get_plugin('category');
+        $errors = $categoryplugin->validate_enrol_plugin_data($enrolmentdata);
+        $this->assertArrayHasKey('errorunsupportedmethod', $errors);
+    }
+
+    /**
+     * Test the behaviour of update_enrol_plugin_data().
+     *
+     * @covers ::update_enrol_plugin_data
+     */
+    public function test_update_enrol_plugin_data(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $manualplugin = enrol_get_plugin('manual');
+
+        $admin = get_admin();
+        $this->setUser($admin);
+
+        $enrolmentdata = [];
+
+        $cat = $this->getDataGenerator()->create_category();
+        $course = $this->getDataGenerator()->create_course(['category' => $cat->id, 'shortname' => 'ANON']);
+        $instance = $DB->get_record('enrol', ['courseid' => $course->id, 'enrol' => 'manual'], '*', MUST_EXIST);
+
+        $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
+        $editingteacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
+
+        $enrolmentdata['startdate'] = '3 Feb 2024';
+        $enrolmentdata['enddate'] = '4 Feb 2024';
+        $enrolmentdata['role'] = 'teacher';
+        $enrolmentdata['name'] = 'testinstance';
+
+        $expectedinstance = $instance;
+        $expectedinstance->enrolstartdate = strtotime($enrolmentdata['startdate']);
+        $expectedinstance->enrolenddate = strtotime($enrolmentdata['enddate']);
+        $expectedinstance->role = $teacherroleid;
+        $expectedinstance->name = $enrolmentdata['name'];
+        $expectedinstance->enrolperiod = $expectedinstance->enrolenddate - $expectedinstance->enrolstartdate;
+        $modifiedinstance = $manualplugin->update_enrol_plugin_data($course->id, $enrolmentdata, $instance);
+        $this->assertEquals($expectedinstance, $modifiedinstance);
+
+        $enrolmentdata['roleid'] = $editingteacherroleid;
+        unset($enrolmentdata['startdate']);
+        unset($enrolmentdata['enddate']);
+        unset($enrolmentdata['role']);
+        $enrolmentdata['enrolperiod'] = $modifiedinstance->enrolperiod++;
+        $expectedinstance->roleid = $editingteacherroleid;
+        $expectedinstance->enrolstartdate = 0;
+        $expectedinstance->enrolenddate = 0;
+        $expectedinstance->enrolperiod++;
+        $modifiedinstance = $manualplugin->update_enrol_plugin_data($course->id, $enrolmentdata, $instance);
+        $this->assertEquals($expectedinstance, $modifiedinstance);
+
+        $enrolmentdata['startdate'] = '3 Feb 2024';
+        $enrolmentdata['enrolperiod'] = 3600;
+        $expectedinstance->enrolstartdate = strtotime($enrolmentdata['startdate']);
+        $expectedinstance->enrolperiod = $enrolmentdata['enrolperiod'];
+        $expectedinstance->enrolenddate = $expectedinstance->enrolstartdate + $enrolmentdata['enrolperiod'];
+        $modifiedinstance = $manualplugin->update_enrol_plugin_data($course->id, $enrolmentdata, $instance);
+        $this->assertEquals($expectedinstance, $modifiedinstance);
+
+        $enrolmentdata['enddate'] = '5 Feb 2024';
+        unset($enrolmentdata['enrolperiod']);
+        $expectedinstance->enrolenddate = strtotime($enrolmentdata['startdate']);
+        $expectedinstance->enrolperiod = $expectedinstance->enrolenddate - $expectedinstance->enrolstartdate;
+        $modifiedinstance = $manualplugin->update_enrol_plugin_data($course->id, $enrolmentdata, $instance);
+        $this->assertEquals($expectedinstance, $modifiedinstance);
+
+        $enrolmentdata['enrolperiod'] = '2hours';
+        $expectedinstance->enrolperiod = 7200;
+        $expectedinstance->enrolenddate = $expectedinstance->enrolstartdate + $expectedinstance->enrolperiod;
+        $modifiedinstance = $manualplugin->update_enrol_plugin_data($course->id, $enrolmentdata, $instance);
+        $this->assertEquals($expectedinstance, $modifiedinstance);
     }
 }

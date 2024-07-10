@@ -81,10 +81,18 @@ class bulk_update_test extends \advanced_testcase {
             'resource-1' => ['resource', ['completion' => COMPLETION_TRACKING_AUTOMATIC, 'completionview' => 1]],
             'resource-2' => ['resource', ['completion' => COMPLETION_TRACKING_MANUAL]],
             'scorm-1' => ['scorm',
-                ['completion' => COMPLETION_TRACKING_AUTOMATIC, 'completionscorerequired' => 1,
-                    'completionstatusrequired' => [2 => 'passed']],
-                ['completion' => COMPLETION_TRACKING_AUTOMATIC, 'completionscorerequired' => 1,
-                    'completionstatusrequired' => 2]],
+                [
+                    'completion' => COMPLETION_TRACKING_AUTOMATIC,
+                    'completionscoreenabled' => 1,
+                    'completionscorerequired' => 1,
+                    'completionstatusrequired' => [2 => 'passed'],
+                ],
+                [
+                    'completion' => COMPLETION_TRACKING_AUTOMATIC,
+                    'completionscorerequired' => 1,
+                    'completionstatusrequired' => 2,
+                ],
+            ],
             'scorm-2' => ['scorm', ['completion' => COMPLETION_TRACKING_MANUAL]],
             'survey-1' => ['survey', ['completion' => COMPLETION_TRACKING_AUTOMATIC, 'completionsubmit' => 1]],
             'survey-2' => ['survey', ['completion' => COMPLETION_TRACKING_MANUAL]],
@@ -149,6 +157,11 @@ class bulk_update_test extends \advanced_testcase {
      */
     protected function create_course_and_modules($modulenames) {
         global $CFG, $PAGE;
+
+        // Chat and Survey modules are disabled by default, enable them for testing.
+        $manager = \core_plugin_manager::resolve_plugininfo_class('mod');
+        $manager::enable_plugin('chat', 1);
+        $manager::enable_plugin('survey', 1);
 
         $CFG->enablecompletion = true;
         $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1], ['createsections' => true]);

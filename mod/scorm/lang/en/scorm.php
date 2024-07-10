@@ -99,7 +99,7 @@ $string['completionstatusrequired_help'] = 'Checking one or more statuses will r
 $string['confirmloosetracks'] = 'WARNING: The package seems to be changed or modified. If the package structure is changed, some users tracks may be lost during update process.';
 $string['contents'] = 'Contents';
 $string['coursepacket'] = 'Course package';
-$string['coursestruct'] = 'Course structure';
+$string['coursestruct'] = 'Content structure';
 $string['crontask'] = 'Background processing for SCORM';
 $string['currentwindow'] = 'Current window';
 $string['datadir'] = 'Filesystem error: Can\'t create course data directory';
@@ -117,7 +117,7 @@ $string['display'] = 'Display package';
 $string['displayattemptstatus'] = 'Display attempt status';
 $string['displayattemptstatus_help'] = 'This preference allows a summary of the users attempts to show in the course overview block in Dashboard and/or the SCORM entry page.';
 $string['displayattemptstatusdesc'] = 'Whether a summary of the user\'s attempts is shown in the course overview block in Dashboard and/or the SCORM entry page.';
-$string['displaycoursestructure'] = 'Display course structure on entry page';
+$string['displaycoursestructure'] = 'Display content structure on entry page';
 $string['displaycoursestructure_help'] = 'If enabled, the table of contents is displayed on the SCORM outline page.';
 $string['displaycoursestructuredesc'] = 'If enabled, the table of contents is displayed on the SCORM outline page.';
 $string['displaydesc'] = 'Whether to display the SCORM package in a new window.';
@@ -194,7 +194,7 @@ $string['hidebrowse_help'] = 'Preview mode allows a student to browse an activit
 $string['hidebrowsedesc'] = 'Preview mode allows a student to browse an activity before attempting it.';
 $string['hideexit'] = 'Hide exit link';
 $string['hidereview'] = 'Hide review button';
-$string['hidetoc'] = 'Display course structure in player';
+$string['hidetoc'] = 'Display content structure in player';
 $string['hidetoc_help'] = 'How the table of contents is displayed in the SCORM player';
 $string['hidetocdesc'] = 'This setting specifies how the table of contents is displayed in the SCORM player.';
 $string['highestattempt'] = 'Highest attempt';
@@ -267,6 +267,7 @@ $string['maximumattemptsdesc'] = 'This preference sets the default maximum attem
 $string['maximumgradedesc'] = 'This preference sets the default maximum grade for an activity';
 $string['menubar'] = 'Show the menu bar';
 $string['min'] = 'Minimum score';
+$string['minimumscoregreater'] = 'Minimum score must be greater than 0.';
 $string['missing_attribute'] = 'Missing attribute {$a->attr} in tag {$a->tag}';
 $string['missingparam'] = 'A required parameter is missing or wrong';
 $string['missing_tag'] = 'Missing tag {$a->tag}';
@@ -454,11 +455,6 @@ $string['whatgradedesc'] = 'Whether the highest, average (mean), first or last c
 $string['width'] = 'Width';
 $string['window'] = 'Window';
 $string['youmustselectastatus'] = 'You must select a status to require';
-
-// Deprecated since Moodle 4.0.
-$string['info'] = 'Info';
-$string['displayactivityname'] = 'Display activity name';
-$string['displayactivityname_help'] = 'Whether or not to display the activity name above the SCORM player.';
 
 // Deprecated since Moodle 4.3.
 $string['completionscorerequired_help'] = 'Enabling this setting will require a user to have at least the minimum score entered to be marked complete in this SCORM activity, as well as any other Activity Completion requirements.';

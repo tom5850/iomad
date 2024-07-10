@@ -10,7 +10,7 @@ Feature: Allow teachers to bulk edit activity completion rules in a course.
       | Course 1 | C1        | 0        | 1                |
     And the following "users" exist:
       | username | firstname | lastname | email |
-      | teacher1 | Teacher | Frist | teacher1@example.com |
+      | teacher1 | Teacher | First | teacher1@example.com |
       | student1 | Student | First | student1@example.com |
     And the following "course enrolments" exist:
       | user     | course | role           |
@@ -78,3 +78,10 @@ Feature: Allow teachers to bulk edit activity completion rules in a course.
     And I should see "With conditions" in the "//div[contains(concat(' ', normalize-space(@class), ' '), ' row ')][.//*[text() = 'Test assignment two']]" "xpath_element"
     And I should see "Passing grade" in the "//div[contains(concat(' ', normalize-space(@class), ' '), ' row ')][.//*[text() = 'Test assignment two']]" "xpath_element"
     And I should not see "Completion expected on" in the "//div[contains(concat(' ', normalize-space(@class), ' '), ' row ')][.//*[text() = 'Test assignment two']]" "xpath_element"
+
+  @accessibility
+  Scenario: Evaluate the accessibility of the bulk edit activity completion page
+    Given I am on the "Course 1" course page logged in as "teacher1"
+    When I navigate to "Course completion" in current page administration
+    And I set the field "Course completion tertiary navigation" to "Bulk edit activity completion"
+    And the page should meet accessibility standards

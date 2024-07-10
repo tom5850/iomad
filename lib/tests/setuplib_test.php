@@ -106,8 +106,8 @@ class setuplib_test extends \advanced_testcase {
 
         // Delete existing localcache directory, as this is testing first call
         // to make_localcache_directory.
-        remove_dir($CFG->localcachedir, true);
-        $dir = make_localcache_directory('', false);
+        $this->assertTrue(remove_dir($CFG->localcachedir));
+        $dir = make_localcache_directory('');
         $this->assertSame($CFG->localcachedir, $dir);
         $this->assertFileDoesNotExist("$CFG->localcachedir/.htaccess");
         $this->assertFileExists($timestampfile);
@@ -491,7 +491,6 @@ class setuplib_test extends \advanced_testcase {
 
         // The \core\uuid::generate_uuid_via_pecl_uuid_extension static method is protected. Use Reflection to call the method.
         $method = new \ReflectionMethod('\core\uuid', 'generate_uuid_via_pecl_uuid_extension');
-        $method->setAccessible(true);
         $uuid = $method->invoke(null);
         $this->assertTrue(self::is_valid_uuid_v4($uuid), "Invalid v4 uuid: '$uuid'");
     }
@@ -508,7 +507,6 @@ class setuplib_test extends \advanced_testcase {
 
         // The \core\uuid::generate_uuid_via_random_bytes static method is protected. Use Reflection to call the method.
         $method = new \ReflectionMethod('\core\uuid', 'generate_uuid_via_random_bytes');
-        $method->setAccessible(true);
         $uuid = $method->invoke(null);
         $this->assertTrue(self::is_valid_uuid_v4($uuid), "Invalid v4 uuid: '$uuid'");
     }

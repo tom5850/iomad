@@ -412,7 +412,7 @@ class mod_lti_edit_types_form extends moodleform {
      * @param int $parentid
      * @return array category tree
      */
-    public function lti_build_category_tree(array $elements, int $parentid = 0) : array {
+    public function lti_build_category_tree(array $elements, int $parentid = 0): array {
         $branch = [];
 
         foreach ($elements as $element) {
@@ -437,7 +437,9 @@ class mod_lti_edit_types_form extends moodleform {
         // change to the existing value. Add the option as a disabled to make this clear. Once changed, it cannot be set again.
         // This isn't supported from 4.3 onward in the creation of new tool types.
         foreach (['lti_sendname', 'lti_sendemailaddr'] as $elementname) {
-            if ($this->_form->_defaultValues[$elementname] == LTI_SETTING_DELEGATE) {
+            if (!empty($this->_form->_defaultValues[$elementname])
+                    && $this->_form->_defaultValues[$elementname] == LTI_SETTING_DELEGATE) {
+
                 $elementarr = array_filter($this->_form->_elements, function ($element) use($elementname) {
                     return !empty($element->_attributes['name']) && $element->_attributes['name'] == $elementname;
                 });

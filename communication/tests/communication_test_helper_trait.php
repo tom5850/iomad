@@ -25,7 +25,6 @@ namespace core_communication;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 trait communication_test_helper_trait {
-
     /**
      * Setup necessary configs for communication subsystem.
      *
@@ -53,7 +52,8 @@ trait communication_test_helper_trait {
      */
     protected function get_course(
         string $roomname = 'Sampleroom',
-        string $provider = 'communication_matrix'
+        string $provider = 'communication_matrix',
+        array $extrafields = [],
     ): \stdClass {
 
         $this->setup_communication_configs();
@@ -62,7 +62,7 @@ trait communication_test_helper_trait {
             'communicationroomname' => $roomname,
         ];
 
-        return $this->getDataGenerator()->create_course($records);
+        return $this->getDataGenerator()->create_course(array_merge($records, $extrafields));
     }
 
     /**
@@ -83,7 +83,7 @@ trait communication_test_helper_trait {
         $records = [
             'firstname' => $firstname,
             'lastname' => $lastname,
-            'username' => $username
+            'username' => $username,
         ];
 
         return $this->getDataGenerator()->create_user($records);
@@ -114,5 +114,18 @@ trait communication_test_helper_trait {
             'filepath' => '/',
             'filename' => $storedname,
         ], "{$CFG->dirroot}/communication/tests/fixtures/{$filename}");
+    }
+
+    /**
+     * Helper to execute a particular task.
+     *
+     * @param string $task The task.
+     */
+    private function execute_task(string $task): void {
+        // Run the scheduled task.
+        ob_start();
+        $task = \core\task\manager::get_scheduled_task($task);
+        $task->execute();
+        ob_end_clean();
     }
 }

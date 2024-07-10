@@ -363,7 +363,14 @@ class main implements renderable, templatable {
         if (!$this->displaygroupingcustomfield) {
             return [];
         }
-        $fieldid = $DB->get_field('customfield_field', 'id', ['shortname' => $this->customfiltergrouping]);
+
+        // Get the relevant customfield ID within the core_course/course component/area.
+        $fieldid = $DB->get_field_sql("
+            SELECT f.id
+              FROM {customfield_field} f
+              JOIN {customfield_category} c ON c.id = f.categoryid
+             WHERE f.shortname = :shortname AND c.component = 'core_course' AND c.area = 'course'
+        ", ['shortname' => $this->customfiltergrouping]);
         if (!$fieldid) {
             return [];
         }
@@ -509,7 +516,7 @@ class main implements renderable, templatable {
                 );
                 return $this->generate_zero_state_data(
                     $nocoursesimg,
-                    [$button],
+                    [$button->export_for_template($output)],
                     ['title' => 'zero_request_title', 'intro' => 'zero_request_intro']
                 );
             }
@@ -522,6 +529,7 @@ class main implements renderable, templatable {
                     $quickstartbutton = new \single_button(
                         new \moodle_url($quickstarturl, ['lang' => current_language()]),
                         get_string('viewquickstart', 'block_myoverview'),
+                        'get',
                     );
                     $buttons = [$quickstartbutton->export_for_template($output)];
                 }
@@ -580,7 +588,7 @@ class main implements renderable, templatable {
      * Generate the state zero data.
      *
      * @param \moodle_url $imageurl The URL to the image to show
-     * @param \single_button[] $buttons
+     * @param string[] $buttons Exported {@see \single_button} instances
      * @param array $strings Title and intro strings for the zero state if needed.
      * @return array Context variables for the template
      */

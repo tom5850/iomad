@@ -89,7 +89,9 @@ class manager {
     public static function restart_with_write_lock(bool $readonlysession) {
         global $CFG;
 
-        self::$requireslockdebug = !$readonlysession;
+        if (!empty($CFG->enable_read_only_sessions_debug)) {
+            self::$requireslockdebug = !$readonlysession;
+        }
 
         if (self::$sessionactive && !self::$handler->requires_write_lock()) {
             @self::$handler->abort();
@@ -162,9 +164,11 @@ class manager {
                 throw new \core\session\exception(get_string('servererror'));
             }
 
-            // Grab the time when session lock starts.
-            $PERF->sessionlock['gained'] = microtime(true);
-            $PERF->sessionlock['wait'] = $PERF->sessionlock['gained'] - $PERF->sessionlock['start'];
+            if ($requireslock) {
+                // Grab the time when session lock starts.
+                $PERF->sessionlock['gained'] = microtime(true);
+                $PERF->sessionlock['wait'] = $PERF->sessionlock['gained'] - $PERF->sessionlock['start'];
+            }
             self::initialise_user_session($isnewsession);
             self::$sessionactive = true; // Set here, so the session can be cleared if the security check fails.
             self::check_security();
@@ -689,14 +693,17 @@ class manager {
         global $PERF, $ME, $CFG;
 
         if (self::$sessionactive) {
-            // Grab the time when session lock is released.
-            $PERF->sessionlock['released'] = microtime(true);
-            if (!empty($PERF->sessionlock['gained'])) {
-                $PERF->sessionlock['held'] = $PERF->sessionlock['released'] - $PERF->sessionlock['gained'];
+            $requireslock = self::$handler->requires_write_lock();
+            if ($requireslock) {
+                // Grab the time when session lock is released.
+                $PERF->sessionlock['released'] = microtime(true);
+                if (!empty($PERF->sessionlock['gained'])) {
+                    $PERF->sessionlock['held'] = $PERF->sessionlock['released'] - $PERF->sessionlock['gained'];
+                }
+                $PERF->sessionlock['url'] = me();
+                self::update_recent_session_locks($PERF->sessionlock);
+                self::sessionlock_debugging();
             }
-            $PERF->sessionlock['url'] = me();
-            self::update_recent_session_locks($PERF->sessionlock);
-            self::sessionlock_debugging();
 
             // If debugging, take a snapshot of session at close and compare on shutdown to detect any accidental mutations.
             if (debugging()) {
@@ -704,7 +711,6 @@ class manager {
                 \core_shutdown_manager::register_function('\core\session\manager::check_mutated_closed_session');
             }
 
-            $requireslock = self::$handler->requires_write_lock();
             if (!$requireslock || !self::$requireslockdebug) {
                 // Compare the array of the earlier session data with the array now, if
                 // there is a difference then a lock is required.
@@ -1268,7 +1274,7 @@ class manager {
      * @return boolean If the submitted token is valid.
      */
     public static function validate_login_token($token = false) {
-        global $CFG;
+        global $CFG, $SESSION;
 
         if (!empty($CFG->alternateloginurl) || !empty($CFG->disablelogintoken)) {
             // An external login page cannot generate the login token we need to protect CSRF on
@@ -1288,7 +1294,7 @@ class manager {
         $currenttoken = self::get_login_token();
 
         // We need to clean the login token so the old one is not valid again.
-        self::create_login_token();
+        unset($SESSION->logintoken);
 
         if ($currenttoken !== $token) {
             // Fail the login.
@@ -1450,7 +1456,7 @@ class manager {
      * @param array $current
      * @return array
      */
-    private static function array_session_diff(array $previous, array $current) : array {
+    private static function array_session_diff(array $previous, array $current): array {
         // To use array_udiff_uassoc, the first array must have the most keys; this ensures every key is checked.
         // To do this, we first need to sort them by the length of their keys.
         $arrays = [$current, $previous];

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+use core_completion\manager;
+
 /**
  * Default activity completion form
  *
@@ -68,34 +70,16 @@ class core_completion_defaultedit_form extends core_completion_edit_base_form {
      * @return moodleform_mod|null
      */
     protected function get_module_form() {
-        global $CFG, $PAGE;
-
         if ($this->_moduleform) {
             return $this->_moduleform;
         }
 
         $modnames = array_keys($this->get_module_names());
-        $modname = $modnames[0];
-        $course = $this->course;
-
-        $modmoodleform = "$CFG->dirroot/mod/$modname/mod_form.php";
-        if (file_exists($modmoodleform)) {
-            require_once($modmoodleform);
-        } else {
-            throw new \moodle_exception('noformdesc');
-        }
-
-        list($module, $context, $cw, $cmrec, $data) = prepare_new_moduleinfo_data($course, $modname, 0, $this->get_suffix());
-        $data->return = 0;
-        $data->sr = 0;
-        $data->add = $modname;
-
-        // Initialise the form but discard all JS requirements it adds, our form has already added them.
-        $mformclassname = 'mod_'.$modname.'_mod_form';
-        $PAGE->start_collecting_javascript_requirements();
-        $this->_moduleform = new $mformclassname($data, 0, $cmrec, $course);
-        $this->_moduleform->set_suffix('_' . $modname);
-        $PAGE->end_collecting_javascript_requirements();
+        $this->_moduleform = manager::get_module_form(
+                modname: $modnames[0],
+                course: $this->course,
+                suffix: $this->get_suffix(),
+        );
 
         return $this->_moduleform;
     }
@@ -129,23 +113,21 @@ class core_completion_defaultedit_form extends core_completion_edit_base_form {
                 $this->get_suffix()
             );
             $data = (array)$data;
-            $modform->data_preprocessing($data);
+            try {
+                $modform->data_preprocessing($data);
+            } catch (moodle_exception $e) {
+                debugging(
+                    'data_preprocessing function of module ' . $modnames[0] .
+                    ' should be fixed so it can be shown together with other Default activity completion forms',
+                    DEBUG_DEVELOPER
+                );
+            }
             // Unset fields that will conflict with this form and set data to this form.
             unset($data['cmid']);
             unset($data['modids']);
             unset($data['id']);
             $this->set_data($data);
         }
-    }
-
-    /**
-     * There is no course module for this form, because it is used to update default completion settings. So it will
-     * always return null.
-     *
-     * @return \stdClass|null
-     */
-    protected function get_cm(): ?\stdClass {
-        return null;
     }
 
     /**

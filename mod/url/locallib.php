@@ -114,11 +114,12 @@ function url_get_full_url($url, $cm, $course, $config=null) {
         $fullurl = str_replace('>', '%3E', $fullurl);
     }
 
+    if (!$config) {
+        $config = get_config('url');
+    }
+
     // add variable url parameters
-    if (!empty($parameters)) {
-        if (!$config) {
-            $config = get_config('url');
-        }
+    if ($config->allowvariables && !empty($parameters)) {
         $paramvalues = url_get_variable_values($url, $cm, $course, $config);
 
         foreach ($parameters as $parse=>$parameter) {
@@ -250,7 +251,6 @@ EOF;
  * @param object $url
  * @param object $cm
  * @param object $course
- * @return does not return
  */
 function url_print_workaround($url, $cm, $course) {
     global $OUTPUT, $PAGE, $USER;
@@ -258,26 +258,26 @@ function url_print_workaround($url, $cm, $course) {
     $PAGE->activityheader->set_description(url_get_intro($url, $cm, true));
     url_print_header($url, $cm, $course);
 
-    $fullurl = url_get_full_url($url, $cm, $course);
+    $fullurl = new moodle_url(url_get_full_url($url, $cm, $course));
 
     $display = url_get_final_display_type($url);
     if ($display == RESOURCELIB_DISPLAY_POPUP) {
-        $jsfullurl = addslashes_js($fullurl);
+        $jsfullurl = addslashes_js($fullurl->out(false));
         $options = empty($url->displayoptions) ? [] : (array) unserialize_array($url->displayoptions);
         $width  = empty($options['popupwidth'])  ? 620 : $options['popupwidth'];
         $height = empty($options['popupheight']) ? 450 : $options['popupheight'];
         $wh = "width=$width,height=$height,toolbar=no,location=no,menubar=no,copyhistory=no,status=no,directories=no,scrollbars=yes,resizable=yes";
-        $extra = "onclick=\"window.open('$jsfullurl', '', '$wh'); return false;\"";
+        $attributes = ['onclick' => "window.open('$jsfullurl', '', '$wh'); return false;"];
 
     } else if ($display == RESOURCELIB_DISPLAY_NEW) {
-        $extra = "onclick=\"this.target='_blank';\"";
+        $attributes = ['onclick' => "this.target='_blank';"];
 
     } else {
-        $extra = '';
+        $attributes = [];
     }
 
     echo '<div class="urlworkaround">';
-    print_string('clicktoopen', 'url', html_writer::link($fullurl, format_string($cm->name)));
+    print_string('clicktoopen', 'url', html_writer::link($fullurl, format_string($cm->name), $attributes));
     echo '</div>';
 
     echo $OUTPUT->footer();
@@ -297,9 +297,9 @@ function url_display_embed($url, $cm, $course) {
     $fullurl  = url_get_full_url($url, $cm, $course);
     $title    = $url->name;
 
-    $link = html_writer::link($fullurl, format_string($cm->name));
-    $clicktoopen = get_string('clicktoopen', 'url', $link);
     $moodleurl = new moodle_url($fullurl);
+    $link = html_writer::link($moodleurl, format_string($cm->name));
+    $clicktoopen = get_string('clicktoopen', 'url', $link);
 
     $extension = resourcelib_get_extension($url->externalurl);
 

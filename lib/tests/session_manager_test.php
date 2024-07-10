@@ -99,15 +99,15 @@ class session_manager_test extends \advanced_testcase {
         $this->assertEquals(0, $USER->id);
 
         $user = $this->getDataGenerator()->create_user();
-        $this->assertObjectHasAttribute('description', $user);
-        $this->assertObjectHasAttribute('password', $user);
+        $this->assertObjectHasProperty('description', $user);
+        $this->assertObjectHasProperty('password', $user);
 
         \core\session\manager::set_user($user);
 
         $this->assertEquals($user->id, $USER->id);
-        $this->assertObjectNotHasAttribute('description', $user);
-        $this->assertObjectNotHasAttribute('password', $user);
-        $this->assertObjectHasAttribute('sesskey', $user);
+        $this->assertObjectNotHasProperty('description', $user);
+        $this->assertObjectNotHasProperty('password', $user);
+        $this->assertObjectHasProperty('sesskey', $user);
         $this->assertSame($user, $GLOBALS['USER']);
         $this->assertSame($GLOBALS['USER'], $_SESSION['USER']);
         $this->assertSame($GLOBALS['USER'], $USER);
@@ -124,8 +124,8 @@ class session_manager_test extends \advanced_testcase {
         @\core\session\manager::login_user($user); // Ignore header error messages.
         $this->assertEquals($user->id, $USER->id);
 
-        $this->assertObjectNotHasAttribute('description', $user);
-        $this->assertObjectNotHasAttribute('password', $user);
+        $this->assertObjectNotHasProperty('description', $user);
+        $this->assertObjectNotHasProperty('password', $user);
         $this->assertSame($user, $GLOBALS['USER']);
         $this->assertSame($GLOBALS['USER'], $_SESSION['USER']);
         $this->assertSame($GLOBALS['USER'], $USER);
@@ -558,7 +558,7 @@ class session_manager_test extends \advanced_testcase {
         $_SESSION['extra'] = true;
 
         // Try admin loginas this user in system context.
-        $this->assertObjectNotHasAttribute('realuser', $USER);
+        $this->assertObjectNotHasProperty('realuser', $USER);
         \core\session\manager::loginas($user->id, \context_system::instance());
 
         $this->assertSame($user->id, $USER->id);
@@ -792,7 +792,7 @@ class session_manager_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function sessionlocks_info_provider() : array {
+    public function sessionlocks_info_provider(): array {
         return [
             [
                 'url'      => null,
@@ -916,7 +916,6 @@ class session_manager_test extends \advanced_testcase {
     public function test_array_session_diff(array $a, array $b, array $expected) {
         $class = new \ReflectionClass('\core\session\manager');
         $method = $class->getMethod('array_session_diff');
-        $method->setAccessible(true);
 
         $result = $method->invokeArgs(null, [$a, $b]);
         $this->assertSame($expected, $result);

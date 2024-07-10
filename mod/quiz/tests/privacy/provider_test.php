@@ -41,6 +41,7 @@ require_once($CFG->dirroot . '/question/tests/privacy_helper.php');
  * @package    mod_quiz
  * @copyright  2018 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers \mod_quiz\privacy\provider
  */
 class provider_test extends \core_privacy\tests\provider_testcase {
 
@@ -534,7 +535,7 @@ class provider_test extends \core_privacy\tests\provider_testcase {
         // Delete the data for user1 and user3 in course1 and check it is removed.
         $quiz1context = $quiz1obj->get_context();
         $approveduserlist = new \core_privacy\local\request\approved_userlist($quiz1context, 'mod_quiz',
-                [$user1->id, $user3->id]);
+            [$user1->id, $user3->id]);
         provider::delete_data_for_users($approveduserlist);
 
         // Only the attempt of user2 should be remained in quiz1.

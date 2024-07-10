@@ -159,7 +159,7 @@ $string['insufficient_responses'] = 'insufficient responses';
 $string['insufficient_responses_help'] = 'For the feedback to be anonymous, there must be at least 2 responses.';
 $string['item_label'] = 'Label';
 $string['item_name'] = 'Question';
-$string['label'] = 'Label';
+$string['label'] = 'Text and media area';
 $string['labelcontents'] = 'Contents';
 $string['mapcourseinfo'] = 'This is a site-wide feedback that is available to all courses using the feedback block. You can however limit the courses to which it will appear by mapping them. Search the course and map it to this feedback.';
 $string['mapcoursenone'] = 'No courses mapped. Feedback available to all courses';
@@ -194,7 +194,10 @@ $string['multichoicerated'] = 'Multiple choice (rated)';
 $string['multichoicetype'] = 'Multiple choice type';
 $string['multichoice_values'] = 'Multiple choice values';
 $string['multiplesubmit'] = 'Allow multiple submissions';
-$string['multiplesubmit_help'] = 'If enabled for anonymous surveys, users can submit feedback an unlimited number of times.';
+$string['multiplesubmit_help'] = 'If set to Yes:
+
+* For anonymous surveys: participants can submit unlimited responses, and all responses will be recorded.
+* For non-anonymous surveys: participants can submit unlimited responses, but only their latest response will be recorded.';
 $string['name'] = 'Name';
 $string['name_required'] = 'Name required';
 $string['nameandlabelformat'] = '({$a->label}) {$a->name}';

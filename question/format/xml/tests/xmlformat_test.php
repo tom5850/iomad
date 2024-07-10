@@ -47,11 +47,6 @@ require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class xmlformat_test extends \question_testcase {
-    public function assert_same_xml($expectedxml, $xml) {
-        $this->assertEquals(str_replace("\r\n", "\n", $expectedxml),
-                str_replace("\r\n", "\n", $xml));
-    }
-
     public function make_test_question() {
         global $USER;
         $q = new \stdClass();
@@ -1588,6 +1583,7 @@ END;
     </generalfeedback>
     <penalty>0.5</penalty>
     <hidden>0</hidden>
+    <idnumber>id-101</idnumber>
     <hint format="html">
       <text>Hint 1</text>
     </hint>
@@ -1612,6 +1608,7 @@ END;
         $expectedqa->name = 'Simple multianswer';
         $expectedqa->qtype = 'multianswer';
         $expectedqa->questiontext = 'Complete this opening line of verse: "The {#1} and the {#2} went to sea".';
+        $expectedqa->idnumber = 'id-101';
         $expectedqa->generalfeedback =
                 'General feedback: It\'s from "The Owl and the Pussy-cat" by Lear: "The owl and the pussycat went to sea".';
         $expectedqa->defaultmark = 2;

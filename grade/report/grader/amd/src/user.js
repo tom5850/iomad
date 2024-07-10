@@ -59,12 +59,12 @@ export default class User extends UserSearch {
     selectAllResultsLink() {
         return Url.relativeUrl('/grade/report/grader/index.php', {
             id: courseID,
-            searchvalue: this.getSearchTerm()
+            gpr_search: this.getSearchTerm()
         }, false);
     }
 
     /**
-     * Build up the view all link that is dedicated to a particular result.
+     * Build up the link that is dedicated to a particular result.
      *
      * @param {Number} userID The ID of the user selected.
      * @returns {string|*}
@@ -72,8 +72,8 @@ export default class User extends UserSearch {
     selectOneLink(userID) {
         return Url.relativeUrl('/grade/report/grader/index.php', {
             id: courseID,
-            searchvalue: this.getSearchTerm(),
-            userid: userID,
+            gpr_search: this.getSearchTerm(),
+            gpr_userid: userID,
         }, false);
     }
 }

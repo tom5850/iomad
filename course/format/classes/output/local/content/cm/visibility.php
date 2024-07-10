@@ -24,6 +24,8 @@
 
 namespace core_courseformat\output\local\content\cm;
 
+use action_menu_link_secondary;
+use core\output\local\action_menu\subpanel as action_menu_subpanel;
 use cm_info;
 use core_courseformat\base as course_format;
 use core_courseformat\output\local\courseformat_named_templatable;
@@ -78,7 +80,8 @@ class visibility implements named_templatable, renderable {
         }
         $format = $this->format;
         // In rare legacy cases, the section could be stealth (orphaned) but they are not editable.
-        if (!$format->show_editor()) {
+        if (!$format->show_editor()
+            || !has_capability('moodle/course:activityvisibility', $this->mod->context)) {
             return $this->build_static_data($output);
         } else {
             return $this->build_editor_data($output);
@@ -128,15 +131,17 @@ class visibility implements named_templatable, renderable {
         \renderer_base $output,
         choicelist $choice,
     ): stdClass {
-        $selected = $choice->get_selected_value();
-        $icon = $this->get_icon($selected);
         $badgetext = $output->sr_text(get_string('availability'));
-        if ($selected === 'hide') {
+
+        if (!$this->mod->visible) {
             $badgetext .= get_string('hiddenfromstudents');
-        } else if ($selected === 'stealth') {
+            $icon = $this->get_icon('hide');
+        } else if ($this->mod->is_stealth()) {
             $badgetext .= get_string('hiddenoncoursepage');
+            $icon = $this->get_icon('stealth');
         } else {
-            $badgetext .= get_string("availability_{$selected}", 'core_courseformat');
+            $badgetext .= get_string("availability_show", 'core_courseformat');
+            $icon = $this->get_icon('show');
         }
         $dropdown = new status(
             $output->render($icon) . ' ' . $badgetext,
@@ -155,15 +160,64 @@ class visibility implements named_templatable, renderable {
      */
     public function get_choice_list(): choicelist {
         $choice = $this->create_choice_list();
-        if (!$this->mod->visible) {
-            $selected = 'hide';
-        } else if ($this->mod->is_stealth()) {
-            $selected = 'stealth';
-        } else {
-            $selected = 'show';
-        }
-        $choice->set_selected_value($selected);
+        $choice->set_selected_value($this->get_selected_choice_value());
         return $choice;
+    }
+
+    /**
+     * Return the cm availability menu item.
+     *
+     * By default, the cm availability is displayed as a menu item subpanel.
+     * However, it can be simplified when there is only one option and
+     * it is not stealth (stealth require a subpanel to inform the user).
+     *
+     * @return action_menu_link_secondary|action_menu_subpanel|null
+     */
+    public function get_menu_item(): action_menu_link_secondary|action_menu_subpanel|null {
+        $choice = $this->get_choice_list();
+        $selectableoptions = $choice->get_selectable_options();
+
+        if (count($selectableoptions) === 0) {
+            return null;
+        }
+
+        // Visible activities in hidden sections are always considered stealth.
+        if ($this->section->visible && count($selectableoptions) === 1) {
+            $option = reset($selectableoptions);
+            $actionlabel = $option->value === 'show' ? 'modshow' : 'modhide';
+            return new action_menu_link_secondary(
+                $option->url,
+                $option->icon,
+                get_string($actionlabel, 'moodle'),
+                $choice->get_option_extras($option->value)
+            );
+        }
+
+        return new action_menu_subpanel(
+            get_string('availability', 'moodle'),
+            $choice,
+            ['class' => 'editing_availability'],
+            new pix_icon('t/hide', '', 'moodle', ['class' => 'iconsmall'])
+        );
+    }
+
+    /**
+     * Get the selected choice value depending on the course, section and stealth settings.
+     * @return string
+     */
+    protected function get_selected_choice_value(): string {
+        if (!$this->mod->visible) {
+            return 'hide';
+        }
+        if (!$this->mod->is_stealth()) {
+            return 'show';
+        }
+        if (!$this->section->visible) {
+            // All visible activities in a hidden sections are considered stealth
+            // but they don't use the stealth attribute for it. It is just implicit.
+            return 'show';
+        }
+        return 'stealth';
     }
 
     /**

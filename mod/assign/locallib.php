@@ -165,6 +165,9 @@ class assign {
     /** @var array of marking workflow states for the current user */
     private $markingworkflowstates = null;
 
+    /** @var array of all marking workflow states */
+    private $allmarkingworkflowstates = null;
+
     /** @var bool whether to exclude users with inactive enrolment */
     private $showonlyactiveenrol = null;
 
@@ -768,7 +771,14 @@ class assign {
         if (empty($update->markingworkflow)) { // If marking workflow is disabled, make sure allocation is disabled.
             $update->markingallocation = 0;
         }
-
+        if (isset($formdata->markinganonymous)) {
+            // If marking workflow is disabled, or anonymous submissions is disabled then make sure marking anonymous is disabled.
+            if (empty($update->markingworkflow) || empty($update->blindmarking)) {
+                $update->markinganonymous = 0;
+            } else {
+                $update->markinganonymous = $formdata->markinganonymous;
+            }
+        }
         $returnid = $DB->insert_record('assign', $update);
         $this->instance = $DB->get_record('assign', array('id'=>$returnid), '*', MUST_EXIST);
         // Cache the course record.
@@ -1536,6 +1546,11 @@ class assign {
         if (empty($update->markingworkflow)) { // If marking workflow is disabled, make sure allocation is disabled.
             $update->markingallocation = 0;
         }
+        $update->markinganonymous = $formdata->markinganonymous;
+        // If marking workflow is disabled, or blindmarking is disabled then make sure marking anonymous is disabled.
+        if (empty($update->markingworkflow) || empty($update->blindmarking)) {
+            $update->markinganonymous = 0;
+        }
 
         $result = $DB->update_record('assign', $update);
         $this->instance = $DB->get_record('assign', array('id'=>$update->id), '*', MUST_EXIST);
@@ -1761,7 +1776,7 @@ class assign {
      * @param int|null $userid the id of the user to load the assign instance for.
      * @return stdClass The settings
      */
-    public function get_instance(int $userid = null) : stdClass {
+    public function get_instance(int $userid = null): stdClass {
         global $USER;
         $userid = $userid ?? $USER->id;
 
@@ -1784,7 +1799,7 @@ class assign {
      * @param int $userid the id of the user to calculate the properties for.
      * @return stdClass a new record having calculated properties.
      */
-    private function calculate_properties(\stdClass $record, int $userid) : \stdClass {
+    private function calculate_properties(\stdClass $record, int $userid): \stdClass {
         $record = clone ($record);
 
         // Relative dates.
@@ -7879,8 +7894,15 @@ class assign {
         if ($this->get_instance()->markingworkflow) {
             $states = $this->get_marking_workflow_states_for_current_user();
             $options = array('' => get_string('markingworkflowstatenotmarked', 'assign')) + $states;
-            $mform->addElement('select', 'workflowstate', get_string('markingworkflowstate', 'assign'), $options);
+            $select = $mform->addElement('select', 'workflowstate', get_string('markingworkflowstate', 'assign'), $options);
             $mform->addHelpButton('workflowstate', 'markingworkflowstate', 'assign');
+            if (!empty($data->workflowstate) && !array_key_exists($data->workflowstate, $states)) {
+                // In a workflow state that user should not be able to change, so freeze workflow selector.
+                // Have to add the state so it shows in the frozen selector.
+                $allworkflowstates = $this->get_all_marking_workflow_states();
+                $select->addOption($allworkflowstates[$data->workflowstate], $data->workflowstate);
+                $mform->freeze('workflowstate');
+            }
             $gradingstatus = $this->get_grading_status($userid);
             if ($gradingstatus != ASSIGN_MARKING_WORKFLOW_STATE_RELEASED) {
                 if ($grade->grade && $grade->grade != -1) {
@@ -8135,7 +8157,8 @@ class assign {
         // Only show submission statement if we are editing our own submission.
         if ($requiresubmissionstatement && !$draftsenabled && $userid == $USER->id) {
             $mform->addElement('checkbox', 'submissionstatement', '', $submissionstatement);
-            $mform->addRule('submissionstatement', get_string('required'), 'required', null, 'client');
+            $mform->addRule('submissionstatement', get_string('submissionstatementrequired', 'mod_assign'),
+                'required', null, 'client');
         }
 
         $this->add_plugin_submission_elements($submission, $mform, $data, $userid);
@@ -8371,6 +8394,10 @@ class assign {
                     // Set assign gradebook feedback plugin status.
                     $assign->gradefeedbackenabled = $this->is_gradebook_feedback_enabled();
 
+                    // If markinganonymous is enabled then allow to release grades anonymously.
+                    if (isset($assign->markinganonymous) && $assign->markinganonymous == 1) {
+                        assign_update_grades($assign, $userid);
+                    }
                     $user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
                     \mod_assign\event\workflow_state_updated::create_from_user($this, $user, $state)->trigger();
                 }
@@ -9188,6 +9215,28 @@ class assign {
     }
 
     /**
+     * Get the list of marking_workflow states.
+     *
+     * @return array Array of multiple state => description.
+     */
+    public function get_all_marking_workflow_states(): array {
+        if (!empty($this->allmarkingworkflowstates)) {
+            return $this->allmarkingworkflowstates;
+        }
+
+        $this->allmarkingworkflowstates = [
+            ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED => get_string('markingworkflowstatenotmarked', 'assign'),
+            ASSIGN_MARKING_WORKFLOW_STATE_INMARKING => get_string('markingworkflowstateinmarking', 'assign'),
+            ASSIGN_MARKING_WORKFLOW_STATE_READYFORREVIEW => get_string('markingworkflowstatereadyforreview', 'assign'),
+            ASSIGN_MARKING_WORKFLOW_STATE_INREVIEW => get_string('markingworkflowstateinreview', 'assign'),
+            ASSIGN_MARKING_WORKFLOW_STATE_READYFORRELEASE => get_string('markingworkflowstatereadyforrelease', 'assign'),
+            ASSIGN_MARKING_WORKFLOW_STATE_RELEASED => get_string('markingworkflowstatereleased', 'assign'),
+        ];
+
+        return $this->allmarkingworkflowstates;
+    }
+
+    /**
      * Check is only active users in course should be shown.
      *
      * @return bool true if only active users should be shown.
@@ -9415,20 +9464,22 @@ class assign {
         $confirm = optional_param('confirm', 0, PARAM_BOOL);
 
         if ($confirm) {
-            confirm_sesskey();
-
-            // Fix the grades.
-            $this->fix_null_grades();
-            unset_config('has_rescaled_null_grades_' . $instance->id, 'assign');
-
-            // Display the notice.
-            $o .= $this->get_renderer()->notification(get_string('fixrescalednullgradesdone', 'assign'), 'notifysuccess');
+            if (confirm_sesskey()) {
+                // Fix the grades.
+                $this->fix_null_grades();
+                unset_config('has_rescaled_null_grades_' . $instance->id, 'assign');
+                // Display the success notice.
+                $o .= $this->get_renderer()->notification(get_string('fixrescalednullgradesdone', 'assign'), 'notifysuccess');
+            } else {
+                // If the sesskey is not valid, then display the error notice.
+                $o .= $this->get_renderer()->notification(get_string('invalidsesskey', 'error'), 'notifyerror');
+            }
             $url = new moodle_url(
-                '/mod/assign/view.php',
-                array(
+                url: '/mod/assign/view.php',
+                params: [
                     'id' => $this->get_course_module()->id,
-                    'action' => 'grading'
-                )
+                    'action' => 'grading',
+                ],
             );
             $o .= $this->get_renderer()->continue_button($url);
         } else {

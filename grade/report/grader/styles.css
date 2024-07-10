@@ -57,6 +57,8 @@
 
 .path-grade-report-grader .grade_icons .icon {
     margin-right: 1rem;
+    font-size: 14px;
+    width: 24px;
 }
 
 .path-grade-report-grader .grade_icons .icon:last-child {
@@ -90,8 +92,8 @@
 }
 
 .path-grade-report-grader .heading .gradeitemheader {
-    text-indent: -1.5rem;
-    padding-left: 1.5rem;
+    text-indent: -2rem;
+    padding-left: 2rem;
     padding-top: 6px;
 }
 
@@ -268,4 +270,10 @@
 .collapsecolumndropdown.show {
     width: 300px;
     max-height: 300px;
+}
+
+@media only screen and (min-width: 768px) {
+    .path-grade-report-grader .gradeparent table {
+        padding-right: 6em;
+    }
 }

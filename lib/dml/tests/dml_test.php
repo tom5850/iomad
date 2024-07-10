@@ -42,7 +42,7 @@ defined('MOODLE_INTERNAL') || die();
  * @category   test
  * @copyright  2008 Nicolas Connault
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \moodle_database
+ * @covers \moodle_database
  */
 class dml_test extends \database_driver_testcase {
 
@@ -500,7 +500,7 @@ class dml_test extends \database_driver_testcase {
         $out = $fixture->four($sql);
         $expected = <<<EOD
 SELECT * FROM {users}
--- line 65 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to ReflectionMethod->invoke()
+-- line 64 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to ReflectionMethod->invoke()
 EOD;
         $this->assertEquals($this->unix_to_os_dirsep($expected), $out);
 
@@ -508,8 +508,8 @@ EOD;
         $out = $fixture->four($sql);
         $expected = <<<EOD
 SELECT * FROM {users}
--- line 65 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to ReflectionMethod->invoke()
--- line 74 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->one()
+-- line 64 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to ReflectionMethod->invoke()
+-- line 73 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->one()
 EOD;
         $this->assertEquals($this->unix_to_os_dirsep($expected), $out);
 
@@ -517,10 +517,10 @@ EOD;
         $out = $fixture->four($sql);
         $expected = <<<EOD
 SELECT * FROM {users}
--- line 65 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to ReflectionMethod->invoke()
--- line 74 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->one()
--- line 83 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->two()
--- line 92 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->three()
+-- line 64 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to ReflectionMethod->invoke()
+-- line 73 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->one()
+-- line 82 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->two()
+-- line 91 of /lib/dml/tests/fixtures/test_dml_sql_debugging_fixture.php: call to test_dml_sql_debugging_fixture->three()
 -- line 517 of /lib/dml/tests/dml_test.php: call to test_dml_sql_debugging_fixture->four()
 EOD;
         $this->assertEquals($this->unix_to_os_dirsep($expected), $out);
@@ -2077,6 +2077,32 @@ EOD;
         $DB->insert_record($tablename, array('course' => 3));
 
         $this->assertEquals(3, $DB->get_field_sql("SELECT course FROM {{$tablename}} WHERE id = ?", array(1)));
+    }
+
+    public function test_get_fieldset() {
+        $DB = $this->tdb;
+        $dbman = $DB->get_manager();
+
+        $table = $this->get_test_table();
+        $tablename = $table->getName();
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('course', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $dbman->create_table($table);
+
+        $DB->insert_record($tablename, ['course' => 1]);
+        $DB->insert_record($tablename, ['course' => 1]);
+        $DB->insert_record($tablename, ['course' => 2]);
+        $DB->insert_record($tablename, ['course' => 1]);
+
+        $fieldset = $DB->get_fieldset($tablename, 'id', ['course' => 1]);
+        $this->assertIsArray($fieldset);
+
+        $this->assertCount(3, $fieldset);
+        $this->assertEquals(1, $fieldset[0]);
+        $this->assertEquals(2, $fieldset[1]);
+        $this->assertEquals(4, $fieldset[2]);
     }
 
     public function test_get_fieldset_select() {
@@ -6345,7 +6371,6 @@ EOD;
         $this->assertTrue(empty($cfg->dboptions['versionfromdb']));
         $rc = new \ReflectionClass(\mysqli_native_moodle_database::class);
         $rcm = $rc->getMethod('should_db_version_be_read_from_db');
-        $rcm->setAccessible(true);
         $this->assertFalse($rcm->invokeArgs($DB, []));
 
         ['description' => $description, 'version' => $version] = $DB->get_server_info();
@@ -6417,7 +6442,7 @@ class moodle_database_for_testing extends moodle_database {
     public function update_record($table, $dataobject, $bulk=false) {}
     public function set_field_select($table, $newfield, $newvalue, $select, array $params=null) {}
     public function delete_records_select($table, $select, array $params=null) {}
-    public function sql_concat() {}
+    public function sql_concat(...$arr) {}
     public function sql_concat_join($separator="' '", $elements=array()) {}
     public function sql_group_concat(string $field, string $separator = ', ', string $sort = ''): string {
         return '';

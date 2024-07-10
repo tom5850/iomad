@@ -30,6 +30,7 @@ use context_course;
 use context_module;
 use context_system;
 use context_coursecat;
+use core\event\section_viewed;
 use core_completion_external;
 use core_external;
 use core_tag_index_builder;
@@ -781,19 +782,27 @@ class courselib_test extends advanced_testcase {
         $this->resetAfterTest();
 
         // Create the course with sections.
-        $course = $this->getDataGenerator()->create_course(array('numsections' => 10), array('createsections' => true));
-        $sections = $DB->get_records('course_sections', array('course' => $course->id));
+        $course = $this->getDataGenerator()->create_course(
+            ['numsections' => 10],
+            ['createsections' => true]
+        );
+        $sections = $DB->get_records('course_sections', ['course' => $course->id]);
 
         // Get the last section's time modified value.
         $section = array_pop($sections);
         $oldtimemodified = $section->timemodified;
 
-        // Update the section.
-        $this->waitForSecond(); // Ensuring that the section update occurs at a different timestamp.
-        course_update_section($course, $section, array());
+        // Ensuring that the section update occurs at a different timestamp.
+        $this->waitForSecond();
 
-        // Check that the time has changed.
-        $section = $DB->get_record('course_sections', array('id' => $section->id));
+        // The timemodified should only be updated if the section is actually updated.
+        course_update_section($course, $section, []);
+        $sectionrecord = $DB->get_record('course_sections', ['id' => $section->id]);
+        $this->assertEquals($oldtimemodified, $sectionrecord->timemodified);
+
+        // Now update something to prove timemodified changes.
+        course_update_section($course, $section, ['name' => 'New name']);
+        $section = $DB->get_record('course_sections', ['id' => $section->id]);
         $newtimemodified = $section->timemodified;
         $this->assertGreaterThan($oldtimemodified, $newtimemodified);
     }
@@ -1061,18 +1070,20 @@ class courselib_test extends advanced_testcase {
         rebuild_course_cache($course->id, true);
 
         // Build course cache.
-        get_fast_modinfo($course->id);
+        $modinfo = get_fast_modinfo($course->id);
         // Get the course modinfo cache.
         $coursemodinfo = $cache->get_versioned($course->id, $course->cacherev);
         // Get the section cache.
         $sectioncaches = $coursemodinfo->sectioncache;
 
+        $numberedsections = $modinfo->get_section_info_all();
+
         // Make sure that we will have 4 section caches here.
         $this->assertCount(4, $sectioncaches);
-        $this->assertArrayHasKey(0, $sectioncaches);
-        $this->assertArrayHasKey(1, $sectioncaches);
-        $this->assertArrayHasKey(2, $sectioncaches);
-        $this->assertArrayHasKey(3, $sectioncaches);
+        $this->assertArrayHasKey($numberedsections[0]->id, $sectioncaches);
+        $this->assertArrayHasKey($numberedsections[1]->id, $sectioncaches);
+        $this->assertArrayHasKey($numberedsections[2]->id, $sectioncaches);
+        $this->assertArrayHasKey($numberedsections[3]->id, $sectioncaches);
 
         // Move section.
         move_section_to($course, 2, 3);
@@ -1083,10 +1094,10 @@ class courselib_test extends advanced_testcase {
 
         // Make sure that we will have 2 section caches left.
         $this->assertCount(2, $sectioncaches);
-        $this->assertArrayHasKey(0, $sectioncaches);
-        $this->assertArrayHasKey(1, $sectioncaches);
-        $this->assertArrayNotHasKey(2, $sectioncaches);
-        $this->assertArrayNotHasKey(3, $sectioncaches);
+        $this->assertArrayHasKey($numberedsections[0]->id, $sectioncaches);
+        $this->assertArrayHasKey($numberedsections[1]->id, $sectioncaches);
+        $this->assertArrayNotHasKey($numberedsections[2]->id, $sectioncaches);
+        $this->assertArrayNotHasKey($numberedsections[3]->id, $sectioncaches);
     }
 
     /**
@@ -1329,6 +1340,53 @@ class courselib_test extends advanced_testcase {
         // Showing the modules.
         foreach ($modules as $mod) {
             set_coursemodule_visible($mod->cmid, 1);
+            $this->check_module_visibility($mod, 1, 1);
+        }
+    }
+
+    /**
+     * Test rebuildcache = false behaviour.
+     *
+     * When we pass rebuildcache = false to set_coursemodule_visible, the corusemodinfo cache will still contain
+     * the original visibility until we trigger a rebuild.
+     *
+     * @return void
+     * @covers ::set_coursemodule_visible
+     */
+    public function test_module_visibility_no_rebuild(): void {
+        $this->setAdminUser();
+        $this->resetAfterTest(true);
+
+        // Create course and modules.
+        $course = $this->getDataGenerator()->create_course(['numsections' => 5]);
+        $forum = $this->getDataGenerator()->create_module('forum', ['course' => $course->id]);
+        $assign = $this->getDataGenerator()->create_module('assign', ['duedate' => time(), 'course' => $course->id]);
+        $modules = compact('forum', 'assign');
+
+        // Hiding the modules.
+        foreach ($modules as $mod) {
+            set_coursemodule_visible($mod->cmid, 0, 1, false);
+            // The modinfo cache still has the original visibility until we manually trigger a rebuild.
+            $cm = get_fast_modinfo($mod->course)->get_cm($mod->cmid);
+            $this->assertEquals(1, $cm->visible);
+        }
+
+        rebuild_course_cache($course->id);
+
+        foreach ($modules as $mod) {
+            $this->check_module_visibility($mod, 0, 0);
+        }
+
+        // Showing the modules.
+        foreach ($modules as $mod) {
+            set_coursemodule_visible($mod->cmid, 1, 1, false);
+            $cm = get_fast_modinfo($mod->course)->get_cm($mod->cmid);
+            $this->assertEquals(0, $cm->visible);
+        }
+
+        rebuild_course_cache($course->id);
+
+        foreach ($modules as $mod) {
             $this->check_module_visibility($mod, 1, 1);
         }
     }
@@ -7339,31 +7397,33 @@ class courselib_test extends advanced_testcase {
     }
 
     /**
-     * Test the course_update_communication_instance_data() function.
+     * Test course_section_view() function
      *
-     * @covers ::course_update_communication_instance_data
+     * @covers ::course_section_view
      */
-    public function test_course_update_communication_instance_data(): void {
+    public function test_course_section_view(): void {
+
         $this->resetAfterTest();
-        $course = $this->getDataGenerator()->create_course();
 
-        // Set some data to update with.
-        $data = new stdClass();
-        $data->instanceid = $course->id;
-        $data->fullname = 'newname';
+        // Course without sections.
+        $course = $this->getDataGenerator()->create_course(['numsections' => 5], ['createsections' => true]);
+        $coursecontext = context_course::instance($course->id);
+        $format = course_get_format($course->id);
+        $sections = $format->get_sections();
+        $section = reset($sections);
 
-        // These should not be the same yet.
-        $this->assertNotEquals($course->fullname, $data->fullname);
+        // Redirect events to the sink, so we can recover them later.
+        $sink = $this->redirectEvents();
 
-        // Use the callback function to update the course with the data.
-        component_callback(
-            'core_course',
-            'update_communication_instance_data',
-            [$data]
-        );
+        course_section_view($coursecontext, $section->id);
 
-        // Get the course and check it was updated.
-        $course = get_course($course->id);
-        $this->assertEquals($course->fullname, $data->fullname);
+        $events = $sink->get_events();
+        $event = reset($events);
+
+        // Check the event details are correct.
+        $this->assertInstanceOf('\core\event\section_viewed', $event);
+        $this->assertEquals(context_course::instance($course->id), $event->get_context());
+        $this->assertEquals('course_sections', $event->objecttable);
+        $this->assertEquals($section->id, $event->objectid);
     }
 }

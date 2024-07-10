@@ -1121,7 +1121,7 @@ class calendar_information {
      *                                  If a courseid is specified, this value is ignored.
      * @return  calendar_information
      */
-    public static function create($time, int $courseid, int $categoryid = null) : calendar_information {
+    public static function create($time, int $courseid, int $categoryid = null): calendar_information {
         $calendar = new static(0, 0, 0, $time);
         if ($courseid != SITEID && !empty($courseid)) {
             // Course ID must be valid and existing.
@@ -1936,6 +1936,7 @@ function calendar_get_link_href($linkbase, $d, $m, $y, $time = 0) {
 /**
  * Build and return a previous month HTML link, with an arrow.
  *
+ * @deprecated since Moodle 4.3
  * @param string $text The text label.
  * @param string|moodle_url $linkbase The URL stub.
  * @param int $d The number of the date.
@@ -1947,6 +1948,8 @@ function calendar_get_link_href($linkbase, $d, $m, $y, $time = 0) {
  * @return string HTML string.
  */
 function calendar_get_link_previous($text, $linkbase, $d, $m, $y, $accesshide = false, $time = 0) {
+    debugging(__FUNCTION__ . ' has been deprecated and should not be used anymore.', DEBUG_DEVELOPER);
+
     $href = calendar_get_link_href(new \moodle_url($linkbase), $d, $m, $y, $time);
 
     if (empty($href)) {
@@ -1964,6 +1967,7 @@ function calendar_get_link_previous($text, $linkbase, $d, $m, $y, $accesshide = 
 /**
  * Build and return a next month HTML link, with an arrow.
  *
+ * @deprecated since Moodle 4.3
  * @param string $text The text label.
  * @param string|moodle_url $linkbase The URL stub.
  * @param int $d the number of the Day
@@ -1975,6 +1979,8 @@ function calendar_get_link_previous($text, $linkbase, $d, $m, $y, $accesshide = 
  * @return string HTML string.
  */
 function calendar_get_link_next($text, $linkbase, $d, $m, $y, $accesshide = false, $time = 0) {
+    debugging(__FUNCTION__ . ' has been deprecated and should not be used anymore.', DEBUG_DEVELOPER);
+
     $href = calendar_get_link_href(new \moodle_url($linkbase), $d, $m, $y, $time);
 
     if (empty($href)) {
@@ -3579,6 +3585,18 @@ function calendar_get_view(\calendar_information $calendar, $view, $includenavig
             $data->showviewselector = true;
         } else if ($view == "upcoming_mini") {
             $template = 'core_calendar/calendar_upcoming_mini';
+        }
+    }
+
+    // Check if $data has events.
+    if (isset($data->events)) {
+        // Let's check and sanitize all "name" in $data->events before it's sent to front end.
+        foreach ($data->events as $d) {
+            $name = $d->name ?? null;
+            // Encode special characters if our decoded name does not match the original name.
+            if ($name && (html_entity_decode($name) !== $name)) {
+                $d->name = htmlspecialchars(html_entity_decode($name), ENT_QUOTES, 'utf-8');
+            }
         }
     }
 

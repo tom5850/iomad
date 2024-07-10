@@ -299,8 +299,6 @@ class mod_lti_mod_form extends moodleform_mod {
             'toolurl',
             'securetoolurl',
             'launchcontainer',
-            'resourcekey',
-            'password',
             'instructorcustomparameters',
             'icon',
             'secureicon',
@@ -465,15 +463,19 @@ class mod_lti_mod_form extends moodleform_mod {
         $mform->setType('resourcekey', PARAM_TEXT);
         $mform->addElement('hidden', 'password', '', ['id' => 'id_password']);
         $mform->setType('password', PARAM_TEXT);
-        $mform->addElement('hidden', 'instructorcustomparameters', '', ['id' => 'id_instructorcustomparameters']);
+        $mform->addElement('textarea', 'instructorcustomparameters', get_string('custom', 'lti'),
+            ['rows' => 4, 'cols' => 60]);
         $mform->setType('instructorcustomparameters', PARAM_TEXT);
+        $mform->setAdvanced('instructorcustomparameters');
+        $mform->addHelpButton('instructorcustomparameters', 'custom', 'lti');
+        $mform->setForceLtr('instructorcustomparameters');
         $mform->addElement('hidden', 'icon', '', ['id' => 'id_icon']);
         $mform->setType('icon', PARAM_URL);
         $mform->addElement('hidden', 'secureicon', '', ['id' => 'id_secureicon']);
         $mform->setType('secureicon', PARAM_URL);
 
         // Add standard course module grading elements, and show them if the tool type + instance config permits it.
-        if (in_array($config['acceptgrades'], [LTI_SETTING_ALWAYS, LTI_SETTING_DELEGATE])) {
+        if (!empty($config['acceptgrades']) && in_array($config['acceptgrades'], [LTI_SETTING_ALWAYS, LTI_SETTING_DELEGATE])) {
             $elementnamesbeforegrading = $this->_form->_elementIndex;
             $this->standard_grading_coursemodule_elements();
             $elementnamesaftergrading = $this->_form->_elementIndex;

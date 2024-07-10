@@ -65,7 +65,7 @@ function h5pactivity_supports(string $feature) {
         case FEATURE_BACKUP_MOODLE2:
             return true;
         case FEATURE_MOD_PURPOSE:
-            return MOD_PURPOSE_CONTENT;
+            return MOD_PURPOSE_INTERACTIVECONTENT;
         default:
             return null;
     }
@@ -584,7 +584,7 @@ function h5pactivity_print_recent_activity($course, bool $viewfullnames, int $ti
               JOIN {course_modules} cm ON cm.instance = h5p.id
               JOIN {modules} md ON md.id = cm.module
               JOIN {user} u ON u.id = h5pa.userid
-             WHERE h5pa.timemodified > ?
+             WHERE h5pa.timemodified >= ?
                AND h5p.course = ?
                AND md.name = ?
           ORDER BY h5pa.timemodified ASC";
@@ -669,7 +669,7 @@ function h5pactivity_get_recent_mod_activity(array &$activities, int &$index, in
               JOIN {course_modules} cm ON cm.instance = h5p.id
               JOIN {modules} md ON md.id = cm.module
               JOIN {user} u ON u.id = h5pa.userid $groupjoin
-             WHERE h5pa.timemodified > :timestart
+             WHERE h5pa.timemodified >= :timestart
                AND h5p.id = :cminstance $userselect $groupselect
                AND cm.id = :cmid
           ORDER BY h5pa.timemodified ASC";
@@ -755,7 +755,7 @@ function h5pactivity_print_recent_mod_activity(stdClass $activity, int $courseid
         'userurl' => new moodle_url('/user/view.php', array('id' => $activity->user->id, 'course' => $courseid)),
         'fullname' => $activity->user->fullname];
     if (isset($activity->grade)) {
-        $template['grade'] = get_string('grade_h5p', 'h5pactivity', $activity->grade);
+        $template['grade'] = get_string('gradenoun_h5p', 'h5pactivity', $activity->grade);
     }
 
     echo $OUTPUT->render_from_template('mod_h5pactivity/reviewattempts', $template);
@@ -768,7 +768,7 @@ function h5pactivity_print_recent_mod_activity(stdClass $activity, int $courseid
  * @param int $courseid Limit the search to this course
  * @return array $recentactivity recent activity in a course.
  */
-function h5pactivity_fetch_recent_activity(array $submissions, int $courseid) : array {
+function h5pactivity_fetch_recent_activity(array $submissions, int $courseid): array {
     global $USER;
 
     $course = get_course($courseid);
@@ -870,4 +870,14 @@ function h5pactivity_extend_settings_navigation(settings_navigation $settingsnav
         $h5pactivitynode->add(get_string('attempts_report', 'h5pactivity'), $attemptsreporturl,
             settings_navigation::TYPE_SETTING, '', 'attemptsreport');
     }
+}
+
+/**
+ * Whether the activity is branded.
+ * This information is used, for instance, to decide if a filter should be applied to the icon or not.
+ *
+ * @return bool True if the activity is branded, false otherwise.
+ */
+function h5pactivity_is_branded(): bool {
+    return true;
 }

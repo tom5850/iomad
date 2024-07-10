@@ -141,18 +141,16 @@
     display: block;
 }
 
-#categoryquestions {
+table.question-bank-table {
     margin: 0;
-
-    td,
-    th {
-        padding: 0 0.2em;
-        max-width: 40vw;
-    }
+    background-color: $white;
+    table-layout: fixed;
+    overflow-x: scroll;
+    width: min-content;
+    max-width: 100%;
 
     th {
         text-align: left;
-        font-weight: normal;
     }
 
     & > tbody > tr.r1 {
@@ -161,10 +159,6 @@
 
     & > tbody > tr.highlight {
         border: $border-width solid $info;
-    }
-
-    .checkbox {
-        padding-left: 5px;
     }
 
     .checkbox input[type="checkbox"] {
@@ -190,6 +184,25 @@
 
     .header {
         text-align: left;
+
+        &.sortable-list-current-position {
+            background-color: lighten($primary, 40%);
+        }
+        &.sortable-list-is-dragged {
+            background-color: $white;
+            opacity: 0.85;
+        }
+
+        .header-text > div {
+            display: inline-block;
+        }
+
+        .dropdown-toggle::after {
+            margin-left: 0;
+        }
+        &.checkbox .form-check {
+            padding-left: 0;
+        }
     }
 }
 
@@ -230,7 +243,7 @@
 
 body.path-question-type {
     /* Hacks to display the labels within a form group. */
-    .form-group .col-form-label.sr-only:not(legend):not([for="id_category"]) {
+    .fitem .col-form-label.sr-only:not(legend):not([for="id_category"]) {
         position: static;
         width: auto;
         height: auto;
@@ -334,7 +347,8 @@ body.path-question-type {
     }
 }
 
-.path-mod-quiz input[size] {
+.que input[size],
+.que textarea[cols] {
     width: auto;
     max-width: 100%;
 }
@@ -648,13 +662,6 @@ body.path-question-type .mform fieldset.hidden {
     position: relative;
 }
 
-// qbank_managecategories
-[data-filterregion=filter][data-filter-type=category] .form-autocomplete-suggestions li[aria-disabled=true] {
-    font-weight: bold;
-    color: $body-color;
-    background-color: $body-bg;
-}
-
 @include media-breakpoint-down(sm) {
     .que .info {
         float: none;
@@ -662,14 +669,5 @@ body.path-question-type .mform fieldset.hidden {
     }
     .que .content {
         margin: 0;
-    }
-}
-
-@include media-breakpoint-down(md) {
-    #categoryquestions {
-        td,
-        th {
-            max-width: 75vw;
-        }
     }
 }

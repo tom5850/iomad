@@ -321,35 +321,17 @@ class completion_info {
     }
 
     /**
-     * Displays the 'Your progress' help icon, if completion tracking is enabled.
-     * Just prints the result of display_help_icon().
-     *
      * @deprecated since Moodle 2.0 - Use display_help_icon instead.
      */
     public function print_help_icon() {
-        debugging('The function print_help_icon() is deprecated, please do not use it anymore.',
-            DEBUG_DEVELOPER);
-        print $this->display_help_icon();
+        throw new coding_exception(__FUNCTION__ . '() has been removed.');
     }
 
     /**
-     * Returns the 'Your progress' help icon, if completion tracking is enabled.
-     *
-     * @return string HTML code for help icon, or blank if not needed
      * @deprecated since Moodle 4.0 - The 'Your progress' info isn't displayed any more.
      */
     public function display_help_icon() {
-        global $PAGE, $OUTPUT, $USER;
-        debugging('The function display_help_icon() is deprecated, please do not use it anymore.',
-        DEBUG_DEVELOPER);
-        $result = '';
-        if ($this->is_enabled() && !$PAGE->user_is_editing() && $this->is_tracked_user($USER->id) && isloggedin() &&
-                !isguestuser()) {
-            $result .= html_writer::tag('div', get_string('yourprogress','completion') .
-                    $OUTPUT->help_icon('completionicons', 'completion'), array('id' => 'completionprogressid',
-                    'class' => 'completionprogress'));
-        }
-        return $result;
+        throw new coding_exception(__FUNCTION__ . '() has been removed.');
     }
 
     /**
@@ -714,16 +696,15 @@ class completion_info {
         $completionstate = $this->get_core_completion_state($cminfo, $userid);
 
         if (plugin_supports('mod', $cminfo->modname, FEATURE_COMPLETION_HAS_RULES)) {
-            $response = true;
             $cmcompletionclass = activity_custom_completion::get_cm_completion_class($cminfo->modname);
             if ($cmcompletionclass) {
                 /** @var activity_custom_completion $cmcompletion */
                 $cmcompletion = new $cmcompletionclass($cminfo, $userid, $completionstate);
-                $response = $cmcompletion->get_overall_completion_state() != COMPLETION_INCOMPLETE;
-            }
-
-            if (!$response) {
-                return COMPLETION_INCOMPLETE;
+                $customstate = $cmcompletion->get_overall_completion_state();
+                if ($customstate == COMPLETION_INCOMPLETE) {
+                    return $customstate;
+                }
+                $completionstate[] = $customstate;
             }
         }
 
@@ -967,7 +948,7 @@ class completion_info {
      * Resetting state of manual tickbox has same result as deleting state for
      * it.
      *
-     * @param stcClass|cm_info $cm Activity
+     * @param stdClass|cm_info $cm Activity
      */
     public function reset_all_state($cm) {
         global $DB;
@@ -1009,7 +990,7 @@ class completion_info {
      *   fill the cache, retrieves information from the entire course not just for
      *   this one activity
      * @param int $userid User ID or 0 (default) for current user
-     * @param null $unused This parameter has been deprecated since 4.0 and should not be used anymore.
+     * @param mixed $unused This parameter has been deprecated since 4.0 and should not be used anymore.
      * @return object Completion data. Record from course_modules_completion plus other completion statuses such as
      *                  - Completion status for 'must-receive-grade' completion rule.
      *                  - Custom completion statuses defined by the activity module plugin.
@@ -1461,7 +1442,7 @@ class completion_info {
      * @param int $start User to start at if paging (optional)
      * @param context $extracontext If set, includes extra user information fields
      *   as appropriate to display for current user in this context
-     * @return stdClass with ->total and ->start (same as $start) and ->users;
+     * @return array with ->total and ->start (same as $start) and ->users;
      *   an array of user objects (like mdl_user id, firstname, lastname)
      *   containing an additional ->progress array of coursemoduleid => completionstate
      */
@@ -1513,7 +1494,7 @@ class completion_info {
      *
      * @param stdClass|cm_info $cm Course-module for item that owns grade
      * @param grade_item $item Grade item
-     * @param stdClass $grade
+     * @param stdClass|grade_grade $grade
      * @param bool $deleted
      * @param bool $isbulkupdate If bulk grade update is happening.
      */
@@ -1608,7 +1589,6 @@ class completion_info {
      * This is to be used only for system errors (things that shouldn't happen)
      * and not user-level errors.
      *
-     * @global type $CFG
      * @param string $error Error string (will not be displayed to user unless debugging is enabled)
      * @throws moodle_exception Exception with the error string as debug info
      */

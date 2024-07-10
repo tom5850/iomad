@@ -966,7 +966,6 @@ class completionlib_test extends advanced_testcase {
         $completioninfo = new completion_info($this->course);
 
         $method = new ReflectionMethod("completion_info", "get_other_cm_completion_data");
-        $method->setAccessible(true);
 
         // Check that fetching data for a module with custom completion provides its info.
         $choicecompletiondata = $method->invoke($completioninfo, $cmchoice, $user->id);
@@ -1691,7 +1690,8 @@ class completionlib_test extends advanced_testcase {
      * @covers \aggregate_completions
      */
     public function test_aggregate_completions() {
-        global $DB;
+        global $DB, $CFG;
+        require_once($CFG->dirroot.'/completion/criteria/completion_criteria_activity.php');
         $this->resetAfterTest(true);
         $time = time();
 
@@ -1813,7 +1813,6 @@ class completionlib_test extends advanced_testcase {
 
         // We're testing a private method, so we need to setup reflector magic.
         $method = new ReflectionMethod($ccompletion, '_save');
-        $method->setAccessible(true); // Allow accessing of private method.
         $completionid = $method->invoke($ccompletion);
         $completions = $DB->get_records('course_completions');
         $this->assertEquals(count($completions), 1);
@@ -1821,7 +1820,6 @@ class completionlib_test extends advanced_testcase {
 
         $ccompletion->id = 0;
         $method = new ReflectionMethod($ccompletion, '_save');
-        $method->setAccessible(true); // Allow accessing of private method.
         $completionid = $method->invoke($ccompletion);
         $this->assertDebuggingCalled('Can not update data object, no id!');
         $this->assertNull($completionid);

@@ -261,14 +261,14 @@ abstract class user_selector_base {
             $multiselect = 'multiple="multiple" ';
         }
         $output = '<div class="userselector" id="' . $this->name . '_wrapper">' . "\n" .
-                '<select name="' . $name . '" id="' . $this->name . '" ' .
+                '<select name="' . $name . '" id="' . $this->name . '" aria-live="polite" ' .
                 $multiselect . 'size="' . $this->rows . '" class="form-control no-overflow">' . "\n";
 
         // Populate the select.
         $output .= $this->output_options($groupedusers, $search);
 
         // Output the search controls.
-        $output .= "</select>\n<div class=\"form-inline\">\n";
+        $output .= "</select>\n<div class=\"d-flex flex-wrap align-items-center\">\n";
         $output .= '<input type="text" name="' . $this->name . '_searchtext" id="' .
                 $this->name . '_searchtext" size="15" value="' . s($search) . '" class="form-control"/>';
         $output .= '<input type="submit" name="' . $this->name . '_searchbutton" id="' .
@@ -386,7 +386,7 @@ abstract class user_selector_base {
      *      that is true, then that option will be displayed greyed out, and
      *      will not be returned by get_selected_users.
      */
-    public abstract function find_users($search);
+    abstract public function find_users($search);
 
     /**
      *

@@ -16,7 +16,6 @@
 
 namespace communication_matrix;
 
-use core_communication\processor;
 use moodle_exception;
 
 /**
@@ -105,7 +104,7 @@ class matrix_user_manager_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function get_formatted_matrix_userid_provider(): array {
+    public static function get_formatted_matrix_userid_provider(): array {
         return [
             'alphanumeric' => [
                 'https://matrix.example.org',
@@ -127,6 +126,11 @@ class matrix_user_manager_test extends \advanced_testcase {
                 'colin.creavey',
                 '@colin.creavey:matrix.example.org',
             ],
+            'numeric username' => [
+                'https://matrix.example.org',
+                '123456',
+                '@' . matrix_user_manager::MATRIX_USER_PREFIX . '123456:matrix.example.org',
+            ],
         ];
     }
 
@@ -135,12 +139,12 @@ class matrix_user_manager_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function set_matrix_userid_in_moodle_provider(): array {
+    public static function set_matrix_userid_in_moodle_provider(): array {
         return array_combine(
-            array_keys($this->get_formatted_matrix_userid_provider()),
+            array_keys(self::get_formatted_matrix_userid_provider()),
             array_map(
                 fn($value) => [$value[2]],
-                $this->get_formatted_matrix_userid_provider(),
+                self::get_formatted_matrix_userid_provider(),
             ),
         );
     }
@@ -196,7 +200,7 @@ class matrix_user_manager_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function get_formatted_matrix_home_server_provider(): array {
+    public static function get_formatted_matrix_home_server_provider(): array {
         return [
             'www is removed' => [
                 'https://www.example.org',
@@ -217,6 +221,9 @@ class matrix_user_manager_test extends \advanced_testcase {
      * Test creation of matrix user profile fields.
      */
     public function test_create_matrix_user_profile_fields(): void {
+        global $CFG;
+        require_once("{$CFG->dirroot}/user/profile/lib.php");
+
         $this->resetAfterTest();
 
         $matrixprofilefield = get_config('communication_matrix', 'matrixuserid_field');
@@ -227,6 +234,6 @@ class matrix_user_manager_test extends \advanced_testcase {
         $this->assertNotFalse($matrixprofilefield);
 
         $user = $this->getDataGenerator()->create_user();
-        $this->assertObjectHasAttribute($matrixprofilefield, profile_user_record($user->id));
+        $this->assertObjectHasProperty($matrixprofilefield, profile_user_record($user->id));
     }
 }

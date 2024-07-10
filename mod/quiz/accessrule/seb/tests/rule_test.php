@@ -87,7 +87,7 @@ class rule_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function valid_form_data_provider() : array {
+    public function valid_form_data_provider(): array {
         return [
             'valid seb_requiresafeexambrowser' => ['seb_requiresafeexambrowser', '0'],
             'valid seb_linkquitseb0' => ['seb_linkquitseb', 'http://safeexambrowser.org/macosx'],
@@ -103,7 +103,7 @@ class rule_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function invalid_form_data_provider() : array {
+    public function invalid_form_data_provider(): array {
         return [
             'invalid seb_requiresafeexambrowser' => ['seb_requiresafeexambrowser', 'Uh oh!'],
             'invalid seb_linkquitseb0' => ['seb_linkquitseb', '\0'],
@@ -999,7 +999,6 @@ class rule_test extends \advanced_testcase {
 
         $reflection = new \ReflectionClass('quizaccess_seb');
         $method = $reflection->getMethod('get_download_seb_button');
-        $method->setAccessible(true);
 
         // The current default contents.
         $this->assertStringContainsString($this->get_seb_download_link(), $method->invoke($this->make_rule()));
@@ -1022,7 +1021,6 @@ class rule_test extends \advanced_testcase {
 
         $reflection = new \ReflectionClass('quizaccess_seb');
         $method = $reflection->getMethod('get_action_buttons');
-        $method->setAccessible(true);
 
         $this->assertStringContainsString($this->get_seb_download_link(), $method->invoke($this->make_rule()));
 
@@ -1042,7 +1040,6 @@ class rule_test extends \advanced_testcase {
 
         $reflection = new \ReflectionClass('quizaccess_seb');
         $method = $reflection->getMethod('get_action_buttons');
-        $method->setAccessible(true);
 
         $quizsettings = seb_quiz_settings::get_record(['quizid' => $this->quiz->id]);
 
@@ -1084,7 +1081,6 @@ class rule_test extends \advanced_testcase {
 
         $reflection = new \ReflectionClass('quizaccess_seb');
         $method = $reflection->getMethod('get_action_buttons');
-        $method->setAccessible(true);
 
         set_config('showseblinks', 'seb,http', 'quizaccess_seb');
         $this->assertStringContainsString($this->get_seb_launch_link(), $method->invoke($this->make_rule()));
@@ -1118,7 +1114,6 @@ class rule_test extends \advanced_testcase {
         // Set-up the button to be called.
         $reflection = new \ReflectionClass('quizaccess_seb');
         $method = $reflection->getMethod('get_quit_button');
-        $method->setAccessible(true);
 
         $button = $method->invoke($this->make_rule());
         $this->assertStringContainsString("http://test.quit.link", $button);
@@ -1205,7 +1200,6 @@ class rule_test extends \advanced_testcase {
         // We will check if we show only fake blocks. Which means no other blocks on a page.
         $reflection = new \ReflectionClass('block_manager');
         $property = $reflection->getProperty('fakeblocksonly');
-        $property->setAccessible(true);
 
         $this->assertFalse($property->getValue($PAGE->blocks));
 
@@ -1241,7 +1235,6 @@ class rule_test extends \advanced_testcase {
         // We will check if we show only fake blocks. Which means no other blocks on a page.
         $reflection = new \ReflectionClass('block_manager');
         $property = $reflection->getProperty('fakeblocksonly');
-        $property->setAccessible(true);
 
         $this->assertFalse($property->getValue($PAGE->blocks));
 

@@ -109,10 +109,15 @@ abstract class core_completion_edit_base_form extends moodleform {
         $component = "mod_{$modnames[0]}";
         $itemnames = \core_grades\component_gradeitems::get_itemname_mapping_for_component($component);
         $hascustomrules = count($itemnames) > 1;
+        $customcompletionelements = [];
 
         try {
             // Add completion rules from the module form to this form.
             $moduleform = $this->get_module_form();
+            // If the module doesn't return a form for any reason, we don't continue checking.
+            if (!$moduleform) {
+                return [false, []];
+            }
             $moduleform->_form = $this->_form;
             if ($customcompletionelements = $moduleform->{$function}()) {
                 $hascustomrules = true;
@@ -125,7 +130,9 @@ abstract class core_completion_edit_base_form extends moodleform {
                             ' has wrong suffix and has been removed from the form. This has to be fixed by the developer',
                             DEBUG_DEVELOPER
                         );
-                        $moduleform->_form->removeElement($customcompletionelement);
+                        if ($moduleform->_form->elementExists($customcompletionelement)) {
+                            $moduleform->_form->removeElement($customcompletionelement);
+                        }
                     }
                 }
             }
@@ -133,7 +140,7 @@ abstract class core_completion_edit_base_form extends moodleform {
         } catch (Exception $e) {
             debugging('Could not add custom completion rule of module ' . $modnames[0] .
                 ' to this form, this has to be fixed by the developer', DEBUG_DEVELOPER);
-            return [$hascustomrules, $customcompletionelements];
+            return [false, $customcompletionelements];
         }
     }
 
@@ -257,10 +264,19 @@ abstract class core_completion_edit_base_form extends moodleform {
     }
 
     /**
+     * Return the course module of the form, if any.
+     *
+     * @return cm_info|null
+     */
+    protected function get_cm(): ?cm_info {
+        return null;
+    }
+
+    /**
      * Each module which defines definition_after_data() must call this method.
      */
     public function definition_after_data() {
-        $this->definition_after_data_completion();
+        $this->definition_after_data_completion($this->get_cm());
     }
 
     /**

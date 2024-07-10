@@ -47,8 +47,9 @@ class condition_test extends \advanced_testcase {
         // Make a test course and user.
         $generator = $this->getDataGenerator();
         $course = $generator->create_course();
-        $user = $generator->create_user();
-        $generator->enrol_user($user->id, $course->id);
+        $user = $generator->create_and_enrol($course);
+        $usertwo = $generator->create_and_enrol($course);
+
         $info = new \core_availability\mock_info($course, $user->id);
 
         // Make 2 test groups, one in a grouping and one not.
@@ -70,11 +71,13 @@ class condition_test extends \advanced_testcase {
         // Add user to groups and refresh cache.
         groups_add_member($group1, $user);
         groups_add_member($group2, $user);
-        get_fast_modinfo($course->id, 0, true);
+        $info = new \core_availability\mock_info($course, $user->id);
 
         // Recheck.
         $this->assertTrue($cond->is_available(false, $info, true, $user->id));
         $this->assertFalse($cond->is_available(true, $info, true, $user->id));
+        $this->assertFalse($cond->is_available(false, $info, true, $usertwo->id));
+        $this->assertTrue($cond->is_available(true, $info, true, $usertwo->id));
         $information = $cond->get_description(false, true, $info);
         $information = \core_availability\info::format_info($information, $course);
         $this->assertMatchesRegularExpression('~do not belong to.*G1!~', $information);
@@ -82,11 +85,14 @@ class condition_test extends \advanced_testcase {
         // Check group 2 works also.
         $cond = new condition((object)array('id' => (int)$group2->id));
         $this->assertTrue($cond->is_available(false, $info, true, $user->id));
+        $this->assertFalse($cond->is_available(false, $info, true, $usertwo->id));
 
         // What about an 'any group' condition?
         $cond = new condition((object)array());
         $this->assertTrue($cond->is_available(false, $info, true, $user->id));
         $this->assertFalse($cond->is_available(true, $info, true, $user->id));
+        $this->assertFalse($cond->is_available(false, $info, true, $usertwo->id));
+        $this->assertTrue($cond->is_available(true, $info, true, $usertwo->id));
         $information = $cond->get_description(false, true, $info);
         $information = \core_availability\info::format_info($information, $course);
         $this->assertMatchesRegularExpression('~do not belong to any~', $information);

@@ -102,7 +102,7 @@ class command_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function url_parsing_provider(): array {
+    public static function url_parsing_provider(): array {
         return [
             [
                 'example/:id/endpoint',
@@ -194,7 +194,7 @@ class command_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function parameter_and_option_provider(): array {
+    public static function parameter_and_option_provider(): array {
         $command = [
             'method' => 'PUT',
             'endpoint' => 'example/:id/endpoint',
@@ -266,7 +266,7 @@ class command_test extends \advanced_testcase {
             mock: $mock,
         );
 
-        $mock->append(function(Request $request) use ($expected): Response {
+        $mock->append(function (Request $request) use ($expected): Response {
             $this->assertSame(
                 $expected,
                 $request->getUri()->getQuery(),
@@ -281,7 +281,6 @@ class command_test extends \advanced_testcase {
         );
 
         $execute = new ReflectionMethod($instance, 'execute');
-        $execute->setAccessible(true);
         $execute->invoke($instance, $command);
     }
 
@@ -289,7 +288,7 @@ class command_test extends \advanced_testcase {
      * Data provider for query parameter tests.
      * @return array
      */
-    public function query_provider(): array {
+    public static function query_provider(): array {
         return [
             'no query' => [
                 'query' => [],
@@ -350,7 +349,7 @@ class command_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function sendasjson_provider(): array {
+    public static function sendasjson_provider(): array {
         return [
             'As JSON' => [
                 'sendasjon' => true,

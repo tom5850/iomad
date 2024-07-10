@@ -380,7 +380,7 @@ class data_field_base {     // Base class for Database Field Types (see field/*/
         }
 
         $str = '<div title="' . s($this->field->description) . '">';
-        $str .= '<label for="field_'.$this->field->id.'"><span class="accesshide">'.$this->field->name.'</span>';
+        $str .= '<label for="field_'.$this->field->id.'"><span class="accesshide">'.s($this->field->name).'</span>';
         if ($this->field->required) {
             $image = $OUTPUT->pix_icon('req', get_string('requiredelement', 'form'));
             $str .= html_writer::div($image, 'inline-req');
@@ -428,11 +428,26 @@ class data_field_base {     // Base class for Database Field Types (see field/*/
 
         echo $OUTPUT->heading($this->name(), 3);
 
-        $filepath = $CFG->dirroot.'/mod/data/field/'.$this->type.'/mod.html';
+        $filepath = $CFG->dirroot . '/mod/data/field/' . $this->type . '/mod.html';
+        $templatename = 'datafield_' . $this->type . '/' . $this->type;
 
-        if (!file_exists($filepath)) {
-            throw new \moodle_exception(get_string('missingfieldtype', 'data', (object)['name' => $this->field->name]));
+        try {
+            $templatefilepath = \core\output\mustache_template_finder::get_template_filepath($templatename);
+            $templatefileexists = true;
+        } catch (moodle_exception $e) {
+            if (!file_exists($filepath)) {
+                // Neither file exists.
+                throw new \moodle_exception(get_string('missingfieldtype', 'data', (object)['name' => $this->field->name]));
+            }
+            $templatefileexists = false;
+        }
+
+        if ($templatefileexists) {
+            // Give out templated Bootstrap formatted form fields.
+            $data = $this->get_field_params();
+            echo $OUTPUT->render_from_template($templatename, $data);
         } else {
+            // Fall back to display mod.html for backward compatibility.
             require_once($filepath);
         }
 
@@ -742,6 +757,37 @@ class data_field_base {     // Base class for Database Field Types (see field/*/
         }
         return $configs;
     }
+
+    /**
+     * Function to let field define their parameters.
+     *
+     * This method that should be overridden by the datafield plugins
+     * when they need to define their data.
+     *
+     * @return array
+     */
+    protected function get_field_params(): array {
+        // Name and description of the field.
+        $data = [
+            'name' => $this->field->name,
+            'description' => $this->field->description,
+        ];
+
+        // Whether the field is required.
+        if (isset($this->field->required)) {
+            $data['required'] = $this->field->required;
+        }
+
+        // Add all the field parameters.
+        for ($i = 1; $i <= 10; $i++) {
+            if (isset($this->field->{"param$i"})) {
+                $data["param$i"] = $this->field->{"param$i"};
+            }
+        }
+
+        return $data;
+    }
+
 }
 
 
@@ -1005,6 +1051,7 @@ function data_get_field_from_id($fieldid, $data){
 function data_get_field_new($type, $data) {
     global $CFG;
 
+    $type = clean_param($type, PARAM_ALPHA);
     $filepath = $CFG->dirroot.'/mod/data/field/'.$type.'/field.class.php';
     // It should never access this method if the subfield class doesn't exist.
     if (!file_exists($filepath)) {
@@ -1032,6 +1079,7 @@ function data_get_field(stdClass $field, stdClass $data, ?stdClass $cm=null): da
     if (!isset($field->type)) {
         return new data_field_base($field);
     }
+    $field->type = clean_param($field->type, PARAM_ALPHA);
     $filepath = $CFG->dirroot.'/mod/data/field/'.$field->type.'/field.class.php';
     if (!file_exists($filepath)) {
         return new data_field_base($field);
@@ -1108,9 +1156,11 @@ function data_numentries($data, $userid=null) {
  * @param object $data
  * @param int $groupid
  * @param int $userid
+ * @param bool $approved If specified, and the user has the capability to approve entries, then this value
+ *      will be used as the approved status of the new record
  * @return bool
  */
-function data_add_record($data, $groupid = 0, $userid = null) {
+function data_add_record($data, $groupid = 0, $userid = null, bool $approved = true) {
     global $USER, $DB;
 
     $cm = get_coursemodule_from_instance('data', $data->id);
@@ -1122,7 +1172,7 @@ function data_add_record($data, $groupid = 0, $userid = null) {
     $record->groupid = $groupid;
     $record->timecreated = $record->timemodified = time();
     if (has_capability('mod/data:approve', $context)) {
-        $record->approved = 1;
+        $record->approved = $approved;
     } else {
         $record->approved = 0;
     }
@@ -1740,7 +1790,8 @@ function data_print_preference_form($data, $perpage, $search, $sort='', $order='
     echo '<label for="pref_perpage">'.get_string('pagesize','data').'</label> ';
     $pagesizes = array(2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10,15=>15,
                        20=>20,30=>30,40=>40,50=>50,100=>100,200=>200,300=>300,400=>400,500=>500,1000=>1000);
-    echo html_writer::select($pagesizes, 'perpage', $perpage, false, array('id' => 'pref_perpage', 'class' => 'custom-select'));
+    echo html_writer::select($pagesizes, 'perpage', $perpage, false, array('id' => 'pref_perpage',
+        'class' => 'custom-select mr-1'));
 
     if ($advanced) {
         $regsearchclass = 'search_none';
@@ -1749,19 +1800,19 @@ function data_print_preference_form($data, $perpage, $search, $sort='', $order='
         $regsearchclass = 'search_inline';
         $advancedsearchclass = 'search_none';
     }
-    echo '<div id="reg_search" class="' . $regsearchclass . ' form-inline" >&nbsp;&nbsp;&nbsp;';
-    echo '<label for="pref_search">' . get_string('search') . '</label> <input type="text" ' .
-         'class="form-control" size="16" name="search" id= "pref_search" value="' . s($search) . '" /></div>';
-    echo '&nbsp;&nbsp;&nbsp;<label for="pref_sortby">'.get_string('sortby').'</label> ';
+    echo '<div id="reg_search" class="' . $regsearchclass . ' mr-1" >';
+    echo '<label for="pref_search" class="mr-1">' . get_string('search') . '</label><input type="text" ' .
+         'class="form-control d-inline-block align-middle w-auto mr-1" size="16" name="search" id= "pref_search" value="' . s($search) . '" /></div>';
+    echo '<label for="pref_sortby">'.get_string('sortby').'</label> ';
     // foreach field, print the option
     echo '<select name="sort" id="pref_sortby" class="custom-select mr-1">';
     if ($fields = $DB->get_records('data_fields', array('dataid'=>$data->id), 'name')) {
         echo '<optgroup label="'.get_string('fields', 'data').'">';
         foreach ($fields as $field) {
             if ($field->id == $sort) {
-                echo '<option value="'.$field->id.'" selected="selected">'.$field->name.'</option>';
+                echo '<option value="'.$field->id.'" selected="selected">'.s($field->name).'</option>';
             } else {
-                echo '<option value="'.$field->id.'">'.$field->name.'</option>';
+                echo '<option value="'.$field->id.'">'.s($field->name).'</option>';
             }
         }
         echo '</optgroup>';
@@ -1805,14 +1856,14 @@ function data_print_preference_form($data, $perpage, $search, $sort='', $order='
         $checked = '';
     }
     $PAGE->requires->js('/mod/data/data.js');
-    echo '&nbsp;<input type="hidden" name="advanced" value="0" />';
-    echo '&nbsp;<input type="hidden" name="filter" value="1" />';
-    echo '&nbsp;<input type="checkbox" id="advancedcheckbox" name="advanced" value="1" ' . $checked . ' ' .
+    echo '<input type="hidden" name="advanced" value="0" />';
+    echo '<input type="hidden" name="filter" value="1" />';
+    echo '<input type="checkbox" id="advancedcheckbox" name="advanced" value="1" ' . $checked . ' ' .
          'onchange="showHideAdvSearch(this.checked);" class="mx-1" />' .
          '<label for="advancedcheckbox">' . get_string('advancedsearch', 'data') . '</label>';
     echo '</div>';
     echo '<div id="advsearch-save-sec" class="ml-auto '. $regsearchclass . '">';
-    echo '&nbsp;<input type="submit" class="btn btn-secondary" value="' . get_string('savesettings', 'data') . '" />';
+    echo '<input type="submit" class="btn btn-secondary" value="' . get_string('savesettings', 'data') . '" />';
     echo '</div>';
     echo '</div>';
     echo '<div>';
@@ -2259,7 +2310,6 @@ function data_print_header($course, $cm, $data, $currenttab='', string $actionba
 
     global $CFG, $displaynoticegood, $displaynoticebad, $OUTPUT, $PAGE, $USER;
 
-    $PAGE->set_title($data->name);
     echo $OUTPUT->header();
 
     echo $actionbar;
@@ -3348,7 +3398,6 @@ function data_presets_generate_xml($course, $cm, $data) {
     $preset = preset::create_from_instance($manager, $data->name);
     $reflection = new \ReflectionClass(preset::class);
     $method = $reflection->getMethod('generate_preset_xml');
-    $method->setAccessible(true);
     return $method->invokeArgs($preset, []);
 }
 

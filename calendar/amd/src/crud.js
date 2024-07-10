@@ -32,6 +32,7 @@ define([
     'core_calendar/selectors',
     'core/pending',
     'core/modal_save_cancel',
+    'core/config',
 ],
 function(
     $,
@@ -45,6 +46,7 @@ function(
     CalendarSelectors,
     Pending,
     ModalSaveCancel,
+    Config,
 ) {
 
     /**
@@ -153,7 +155,8 @@ function(
                 var wrapper = root.find(CalendarSelectors.wrapper);
 
                 var categoryId = wrapper.data('categoryid');
-                if (typeof categoryId !== 'undefined') {
+                const courseId = wrapper.data('courseid');
+                if (typeof categoryId !== 'undefined' && courseId != Config.siteId) {
                     modal.setCategoryId(categoryId);
                 }
 
@@ -170,7 +173,7 @@ function(
                 modal.show();
                 return;
             })
-            .fail(Notification.exception);
+            .catch(Notification.exception);
 
             e.preventDefault();
         });
@@ -192,7 +195,7 @@ function(
 
                 e.stopImmediatePropagation();
                 return;
-            }).fail(Notification.exception);
+            }).catch(Notification.exception);
         });
 
 

@@ -335,7 +335,7 @@ define(
                 methodname: 'core_course_edit_module',
                 args: {id: cmid,
                     action: action,
-                    sectionreturn: target.attr('data-sectionreturn') ? target.attr('data-sectionreturn') : 0
+                    sectionreturn: target.attr('data-sectionreturn') ? target.attr('data-sectionreturn') : null
                 }
             }], true);
 
@@ -694,7 +694,7 @@ define(
          */
         var editSection = function(sectionElement, sectionid, target, courseformat) {
             var action = target.attr('data-action'),
-                sectionreturn = target.attr('data-sectionreturn') ? target.attr('data-sectionreturn') : 0;
+                sectionreturn = target.attr('data-sectionreturn') ? target.attr('data-sectionreturn') : null;
 
             // Filter direct component handled actions.
             if (courseeditor.supportComponents && componentActions.includes(action)) {
@@ -994,7 +994,7 @@ define(
 
                 // The section and activity names are edited using inplace editable.
                 // The "update" jQuery event must be captured in order to update the course state.
-                $('body').on('updated', `${SELECTOR.SECTIONLI} ${SELECTOR.SECTIONITEM} [data-inplaceeditable]`, function(e) {
+                $('body').on('updated', `${SELECTOR.SECTIONITEM} [data-inplaceeditable]`, function(e) {
                     if (e.ajaxreturn && e.ajaxreturn.itemid) {
                         const state = courseeditor.state;
                         const section = state.section.get(e.ajaxreturn.itemid);
