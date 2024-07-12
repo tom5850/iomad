@@ -414,7 +414,7 @@ $SESSION->loginredirect = $loginredirect;
 /// Redirect to alternative login URL if needed
 $alternateloginurl = "alternateloginurl" . $postfix;
 if (!empty($alternateloginurl) && $loginredirect) {
-    $loginurl = new moodle_url($CFG->$alternateloginurl);
+    $loginurl = new moodle_url($alternateloginurl);
 
     $loginurlstr = $loginurl->out(false);
 
