@@ -103,7 +103,9 @@ if ($DB->get_manager()->table_exists('company') &&
     $postfix = "_" . $wantedcompanyid;
 } else {
     $hascompanybyurl = false;
-    $postfix = "_" . $wantedcompanyid;
+    if (!empty($wantedcompanyid)) {
+        $postfix = "_" . $wantedcompanyid;
+    }
 }
 
 // login page requested session test
@@ -413,8 +415,8 @@ $SESSION->loginredirect = $loginredirect;
 
 /// Redirect to alternative login URL if needed
 $alternateloginurl = "alternateloginurl" . $postfix;
-if (!empty($alternateloginurl) && $loginredirect) {
-    $loginurl = new moodle_url($alternateloginurl);
+if (!empty($CFG->$alternateloginurl) && $loginredirect) {
+    $loginurl = new moodle_url($CFG->$alternateloginurl);
 
     $loginurlstr = $loginurl->out(false);
 
