@@ -123,6 +123,25 @@ class auth_plugin_base {
     /** @var array Stores extra information available to the logged in event. */
     protected $extrauserinfo = [];
 
+    // IOMAD
+    /** stores the prefix to associate with the current company id **/
+    protected $postfix = "";
+
+    /**
+     * Constructor function for the class
+     */
+    function __construct() {
+        global $CFG;
+
+        require_once($CFG->dirroot . '/local/iomad/lib/company.php');
+        $companyid = iomad::get_my_companyid(context_system::instance(), false);
+        if (!empty($companyid)) {
+            $this->postfix = "_$companyid";
+        } else {
+            $this->postfix = "";
+        }
+    }
+
     /**
      * This is the primary method that is used by the authenticate_user_login()
      * function in moodlelib.php.
