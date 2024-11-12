@@ -28,16 +28,13 @@ defined('MOODLE_INTERNAL') || die();
 
 use moodle_url;
 use pix_icon;
-use auth_iomadsaml2\admin\iomadsaml2_settings;
+use auth_iomadsaml2\admin\saml2_settings;
 use coding_exception;
 use core\output\notification;
 use dml_exception;
 use Exception;
 use moodle_exception;
 use stdClass;
-use iomad;
-use company;
-use context_system;
 
 global $CFG;
 require_once($CFG->libdir.'/authlib.php');
@@ -67,13 +64,34 @@ class auth extends \auth_plugin_base {
     private $defaultidp;
 
     /**
+     * @var string SP name
+     */
+    public $spname;
+
+    /**
+     * @var string Contents of certificate .pem file
+     */
+    public $certpem;
+
+    /**
+     * @var string Contents of certificate .crt file
+     */
+    public $certcrt;
+
+    /**
+     * @var idp_data[] List of metadata for IdPs
+     */
+    public $metadatalist;
+
+
+    /**
      * @var array $defaults The config defaults
      */
     public $defaults = [
         'idpname'            => '',
         'idpdefaultname'     => '', // Set in constructor.
         'idpmetadata'        => '',
-        'debug'              => 0,
+        'debug'              => null,
         'duallogin'          => iomadsaml2_settings::OPTION_DUAL_LOGIN_YES,
         'autologin'          => iomadsaml2_settings::OPTION_AUTO_LOGIN_NO,
         'autologincookie'    => '',
@@ -91,7 +109,8 @@ class auth extends \auth_plugin_base {
         'nameidasattrib'     => 0,
         'flagresponsetype'   => iomadsaml2_settings::OPTION_FLAGGED_LOGIN_MESSAGE,
         'flagredirecturl'    => '',
-        'flagmessage'        => '' // Set in constructor.
+        'flagmessage'        => '', // Set in constructor.
+        'tempdir'            => '/tmp/simplesaml'
     ];
 
     /**
@@ -99,6 +118,13 @@ class auth extends \auth_plugin_base {
      */
     public function __construct() {
         global $CFG, $DB;
+
+        // IOMAD
+        $companyid = iomad::get_my_companyid(context_system::instance(), false);
+        $postfix = '';
+        if (!empty($companyid)) {
+            $postfix = "_$companyid";
+        }
 
         // Add username field to the list of data mapping to be able to update it on user creation if required.
         if (!in_array('username', $this->userfields)) {
@@ -114,12 +140,6 @@ class auth extends \auth_plugin_base {
         $this->spname = $mdl->get_host();
         $this->certpem = $this->get_file("{$this->spname}.pem");
         $this->certcrt = $this->get_file("{$this->spname}.crt");
-
-        $companyid = iomad::get_my_companyid(context_system::instance(), false);
-        $postfix = '';
-        if (!empty($companyid)) {
-            $postfix = "_$companyid";
-        }
 
         $fullconfig = (array) get_config('auth_iomadsaml2');
         $myconfig = array_merge($this->defaults, $fullconfig );
@@ -140,7 +160,7 @@ class auth extends \auth_plugin_base {
         $this->metadatalist = $parser->parse($this->config->idpmetadata);
 
         // Fetch active entitiyIDs provided by the metadata and populate metadataentities list.
-        $idpentities = $DB->get_records('auth_iomadsaml2_idps', ['activeidp' => 1, 'companyid' => $companyid]);
+        $idpentities = $DB->get_records('auth_iomadsaml2_idps', ['activeidp' => 1]);
         foreach ($idpentities as $idpentity) {
             // Set name.
             $idpentity->name = empty($idpentity->displayname) ? $idpentity->defaultname : $idpentity->displayname;
@@ -171,9 +191,9 @@ class auth extends \auth_plugin_base {
      *
      * @return string
      */
-    public function get_iomadsaml2_directory() {
+    public function get_saml2_directory() {
         global $CFG;
-        $directory = "{$CFG->dataroot}/iomadsaml2";
+        $directory = "{$CFG->dataroot}/saml2";
         if (!file_exists($directory)) {
             mkdir($directory);
         }
@@ -187,7 +207,7 @@ class auth extends \auth_plugin_base {
      * @return string
      */
     public function get_file($file) {
-        return $this->get_iomadsaml2_directory() . '/' . $file;
+        return $this->get_saml2_directory() . '/' . $file;
     }
 
     /**
@@ -272,7 +292,7 @@ class auth extends \auth_plugin_base {
 
             // Moodle Workplace - Check IdP's tenant availability.
             // Check if function exists required for Totara 12 compatibility.
-            if (class_exists(\tool_tenant\local\auth\iomadsaml2\manager::class) && !component_class_callback('\tool_tenant\local\auth\iomadsaml2\manager',
+            if (class_exists(\tool_tenant\local\auth\iomadsaml2\manager::class) && !component_class_callback('\tool_tenant\local\auth\saml2\manager',
                     'issuer_available', [$idp->md5entityid], true)) {
                 continue;
             }
@@ -436,7 +456,7 @@ class auth extends \auth_plugin_base {
             unset($SESSION->wantsurl);
         }
 
-        // If the plugin has not been configured then do NOT try to use iomadsaml2.
+        // If the plugin has not been configured then do NOT try to use saml2.
         if ($this->is_configured() === false) {
             return;
         }
@@ -463,12 +483,12 @@ class auth extends \auth_plugin_base {
 
         $this->log(__FUNCTION__ . ' enter');
 
-        $saml = optional_param('saml', null, PARAM_BOOL);
+        $iomadsaml = optional_param('iomadsaml', null, PARAM_BOOL);
         $multiidp = optional_param('multiidp', false, PARAM_BOOL);
         // Also support noredirect param - used by other auth plugins.
         $noredirect = optional_param('noredirect', 0, PARAM_BOOL);
         if (!empty($noredirect)) {
-            $saml = 0;
+            $iomadsaml = 0;
         }
 
         // Never redirect on POST.
@@ -478,8 +498,8 @@ class auth extends \auth_plugin_base {
         }
 
         // Never redirect if requested so.
-        if ($saml === 0) {
-            $SESSION->saml = $saml;
+        if ($iomadsaml === 0 && $this->can_skip_redirect()) {
+            $SESSION->saml = $iomadsaml;
             $this->log(__FUNCTION__ . ' skipping due to saml=off parameter');
             return false;
         }
@@ -503,24 +523,24 @@ class auth extends \auth_plugin_base {
         }
 
         // If dual auth then stop and show login page.
-        if ($this->config->duallogin == iomadsaml2_settings::OPTION_DUAL_LOGIN_YES && $saml == 0) {
+        if ($this->config->duallogin == iomadsaml2_settings::OPTION_DUAL_LOGIN_YES && $iomadsaml == 0) {
             $this->log(__FUNCTION__ . ' skipping due to dual auth');
             return false;
         }
 
-        if ($this->config->duallogin == iomadsaml2_settings::OPTION_DUAL_LOGIN_TEST && $saml == 0) {
+        if ($this->config->duallogin == iomadsaml2_settings::OPTION_DUAL_LOGIN_TEST && $iomadsaml == 0) {
             $this->log(__FUNCTION__ . ' skipping to test connectivity first');
             // Inject JS to test connectivity to the login endpoint. Some networks may not be aware of the IdP.
             global $PAGE, $ME;
             $PAGE->requires->js_call_amd('auth_iomadsaml2/connectivity_test', 'init', [
                 $this->config->testendpoint,
-                (new moodle_url($ME, ['saml' => 'on']))->out(),
+                (new moodle_url($ME, ['iomadsaml' => 'on']))->out(),
             ]);
             return false;
         }
 
         // If ?saml=on even when duallogin is on, go directly to IdP.
-        if ($saml == 1) {
+        if ($iomadsaml == 1) {
             $this->log(__FUNCTION__ . ' redirecting due to query param ?saml=on');
             return true;
         }
@@ -530,9 +550,10 @@ class auth extends \auth_plugin_base {
         // submission (all of login.php is processed) and ?saml=off is not
         // preserved forcing us to the IdP.
         //
-        // This isn't needed when duallogin is on because $saml will default to 0
+        // This isn't needed when duallogin is on because $iomadsaml will default to 0
         // and duallogin is not part of the request.
-        if ((isset($SESSION->saml) && $SESSION->saml == 0) && $this->config->duallogin == iomadsaml2_settings::OPTION_DUAL_LOGIN_NO) {
+        if ((isset($SESSION->saml) && $SESSION->saml == 0) && $this->config->duallogin == iomadsaml2_settings::OPTION_DUAL_LOGIN_NO
+                && $this->can_skip_redirect()) {
             $this->log(__FUNCTION__ . ' skipping due to no sso session');
             return false;
         }
@@ -548,14 +569,14 @@ class auth extends \auth_plugin_base {
         // Additionally store this in the session so if the password fails we get
         // the login page again, and don't get booted to the IdP on the second
         // attempt to login manually.
-        $saml = optional_param('saml', 1, PARAM_BOOL);
+        $iomadsaml = optional_param('iomadsaml', 1, PARAM_BOOL);
         $noredirect = optional_param('noredirect', 0, PARAM_BOOL);
         if (!empty($noredirect)) {
-            $saml = 0;
+            $iomadsaml = 0;
         }
 
-        if ($saml == 0) {
-            $SESSION->saml = $saml;
+        if ($iomadsaml == 0 && $this->can_skip_redirect()) {
+            $SESSION->saml = $iomadsaml;
             $this->log(__FUNCTION__ . ' skipping due to ?saml=off');
             return false;
         }
@@ -567,6 +588,25 @@ class auth extends \auth_plugin_base {
         }
 
         return true;
+    }
+
+    /**
+     * Checks whether a user is allowed to skip redirect by using ?saml=off and noredirect params.
+     *
+     * @return bool whether the user can use these flags.
+     */
+    public function can_skip_redirect() {
+        // Allow if duallogin is enabled or a whitelist hasn't been set.
+        if ($this->config->duallogin != iomadsaml2_settings::OPTION_DUAL_LOGIN_NO || empty($this->config->noredirectips)) {
+            return true;
+        }
+
+        // Otherwise only allow this for users with matching IPs.
+        if (remoteip_in_list($this->config->noredirectips)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -622,7 +662,7 @@ class auth extends \auth_plugin_base {
         $passive = (bool)optional_param('passive', $passive, PARAM_BOOL);
         $params = ['isPassive' => $passive];
         if ($passive) {
-            $params['ErrorURL'] = (new moodle_url('/login/index.php', ['saml' => 0]))->out(false);
+            $params['ErrorURL'] = (new moodle_url('/login/index.php', ['iomadsaml' => 0]))->out(false);
         }
         $params['AllowCreate'] = $this->config->allowcreate == 1;
 
@@ -842,7 +882,7 @@ class auth extends \auth_plugin_base {
     }
 
     /**
-     * Redirect IOMAD SAML2 login if a flagredirecturl has been configured.
+     * Redirect SAML2 login if a flagredirecturl has been configured.
      *
      * @throws \moodle_exception
      */
@@ -883,7 +923,7 @@ class auth extends \auth_plugin_base {
      */
     protected function check_whitelisted_ip_redirect() {
         foreach ($this->metadataentities as $idpentity) {
-            if (\core\ip_utils::is_ip_in_subnet_list(getremoteaddr(), $idpentity->whitelist)) {
+            if (\core\ip_utils::is_ip_in_subnet_list(getremoteaddr(), $idpentity->whitelist ?? '')) {
                 return $idpentity->md5entityid;
             }
         }
@@ -1152,7 +1192,7 @@ class auth extends \auth_plugin_base {
         // We just loaded the SP session which replaces the Moodle so we lost
         // the session data, lets temporarily restore the IdP.
         $SESSION->iomadsaml2idp = $idp;
-        $auth = new \SimpleSAML\Auth\Simple($idp);
+        $auth = new \SimpleSAML\Auth\Simple($this->spname);
 
         // Regardless of wether we contact the IdP for Single Signout lets
         // still delete the local SP cookie so we force auth again next time.
