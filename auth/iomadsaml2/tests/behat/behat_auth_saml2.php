@@ -143,7 +143,7 @@ class behat_auth_iomadsaml2 extends behat_base {
         // All integration test are over HTTP.
         set_config('cookiesecure', false);
 
-        /** @var auth_plugin_saml2 $auth */
+        /** @var auth_plugin_iomadsaml2 $auth */
         $auth = get_auth_plugin('iomadsaml2');
 
         $defaults = array_merge($auth->defaults, [

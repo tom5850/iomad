@@ -33,7 +33,7 @@ class auth_iomadsaml2_sitedata_test extends advanced_testcase {
         $expected = "{$CFG->dataroot}/saml2";
         self::assertFalse(file_exists($expected));
 
-        /** @var auth_plugin_saml2 $iomadsaml2 */
+        /** @var auth_plugin_iomadsaml2 $iomadsaml2 */
         $iomadsaml2 = get_auth_plugin('iomadsaml2');
         self::assertTrue(file_exists($expected));
 

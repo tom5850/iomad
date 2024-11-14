@@ -148,9 +148,9 @@ class auto_login {
      *
      * Also called once redirected back after a successful request.
      *
-     * @param \auth_plugin_saml2 $auth Auth plugin
+     * @param \auth_plugin_iomadsaml2 $auth Auth plugin
      */
-    protected static function login(\auth_plugin_saml2 $auth) {
+    protected static function login(\auth_plugin_iomadsaml2 $auth) {
         global $CFG, $FULLME, $SESSION, $SCRIPT;
 
         require(__DIR__ . '/../setup.php');

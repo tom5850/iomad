@@ -28,13 +28,14 @@ defined('MOODLE_INTERNAL') || die();
 
 use moodle_url;
 use pix_icon;
-use auth_iomadsaml2\admin\saml2_settings;
+use auth_iomadsaml2\admin\iomadsaml2_settings;
 use coding_exception;
 use core\output\notification;
 use dml_exception;
 use Exception;
 use moodle_exception;
 use stdClass;
+use iomad;
 
 global $CFG;
 require_once($CFG->libdir.'/authlib.php');
@@ -120,7 +121,7 @@ class auth extends \auth_plugin_base {
         global $CFG, $DB;
 
         // IOMAD
-        $companyid = iomad::get_my_companyid(context_system::instance(), false);
+        $companyid = \iomad::get_my_companyid(\context_system::instance(), false);
         $postfix = '';
         if (!empty($companyid)) {
             $postfix = "_$companyid";

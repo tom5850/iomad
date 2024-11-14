@@ -791,7 +791,7 @@ class auth_iomadsaml2_test extends \advanced_testcase {
         // Setting an ip to use for testing against different configs.
         $_SERVER['REMOTE_ADDR'] = '1.2.3.4';
 
-        /** @var auth_plugin_saml2 $auth */
+        /** @var auth_plugin_iomadsaml2 $auth */
         $auth = get_auth_plugin('iomadsaml2');
         $result = $auth->should_login_redirect();
 

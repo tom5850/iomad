@@ -180,7 +180,7 @@ function get_dn_email() {
 /**
  * General saml exception
  */
-class saml2_exception extends moodle_exception {
+class iomadsaml2_exception extends moodle_exception {
 
     /**
      * Constructor

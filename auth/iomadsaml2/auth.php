@@ -32,6 +32,6 @@ require_once($CFG->libdir.'/authlib.php');
  * @copyright  Brendan Heywood <brendan@catalyst-au.net>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class auth_plugin_saml2 extends \auth_iomadsaml2\auth {
+class auth_plugin_iomadsaml2 extends \auth_iomadsaml2\auth {
 
 }
