@@ -277,17 +277,15 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
                     if ($currenteditingcompany != $mycompany->id) {
                         $mycompanyrec = $DB->get_record('company', array('id' => $mycompany->id));
                         if ($mycompanyrec->hostname != $currentcompany->hostname) {
-                            if (empty($mycompanyrec->hostname)) {
-                                $companyurl = $CFG->wwwrootdefault;
-                            } else {
+                            if (!empty($mycompanyrec->hostname)) {
                                 $companyurl = $_SERVER['REQUEST_SCHEME'] . "://" . $mycompanyrec->hostname;
+                                $SESSION->currenteditingcompany = $mycompany->id;
+                                $SESSION->company = $mycompanyrec;
+                                $SESSION->theme = $mycompanyrec->theme;
+
+                                redirect ($companyurl . '/login/index.php');
                             }
                         }
-                        $SESSION->currenteditingcompany = $mycompany->id;
-                        $SESSION->company = $mycompanyrec;
-                        $SESSION->theme = $mycompanyrec->theme;
-
-                        redirect ($companyurl . '/login/index.php');
                     }
                 }
             }
