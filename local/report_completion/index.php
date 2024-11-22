@@ -686,11 +686,15 @@ if (empty($courseid)) {
 
     // Deal with any course searches.
     $searchparams = array();
+    $companycourses = $company->get_menu_courses(true);
+    if (empty($companycourses)) {
+        $companycourses = [0];
+    }
     if (!empty($coursesearch)) {
-        $coursesearchsql = " AND courseid IN (" . join(',', array_keys($company->get_menu_courses(true))) . ") AND " . $DB->sql_like('coursename', ':coursename', false, false);
+        $coursesearchsql = " AND courseid IN (" . join(',', array_keys($companycourses)) . ") AND " . $DB->sql_like('coursename', ':coursename', false, false);
         $searchparams['coursename'] = "%" . $coursesearch . "%";
     } else {
-        $coursesearchsql = " AND courseid IN (" . join(',', array_keys($company->get_menu_courses(true))) . ") ";
+        $coursesearchsql = " AND courseid IN (" . join(',', array_keys($companycourses)) . ") ";
     }
 
     // Deal with any custom field searches.
@@ -871,7 +875,11 @@ if (empty($courseid)) {
     if ($courseid != 1) {
         $coursesql = " AND lit.courseid = :courseid ";
     } else {
-        $coursesql = " AND lit.courseid IN (" . join(',', array_keys($company->get_menu_courses(true))) . ") ";
+    $companycourses = $company->get_menu_courses(true);
+    if (empty($companycourses)) {
+        $companycourses = [0];
+    }
+        $coursesql = " AND lit.courseid IN (" . join(',', array_keys($companycourses)) . ") ";
     }
 
     // Deal with any search dates.
