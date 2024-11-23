@@ -539,6 +539,8 @@ class observer {
                                                    AND cc.courseid = :courseid",
                                                   ['userid' => $userid,
                                                    'courseid' => $courseid]);
+                // We just want an array of the returned keys (id).
+                $companies = array_keys($companies);
             }
             // We need to get all of the companies which the user is assigned to that has this course available.
         }
@@ -573,14 +575,13 @@ class observer {
             } else {
                 // Create one.
                 if ($courserec = $DB->get_record('course', array('id' => $courseid))) {
-                    $entry = array('userid' => $userid,
-                                   'courseid' => $courseid,
-                                   'coursename' => $courserec->fullname,
-                                   'companyid' => $companyid,
-                                   'timeenrolled' => $timeenrolled,
-                                   'timestarted' => $timeenrolled,
-                                   'modifiedtime' => $modifiedtime
-                                   );
+                    $entry = ['userid' => $userid,
+                                 'courseid' => $courseid,
+                                 'coursename' => $courserec->fullname,
+                                 'companyid' => $companyid,
+                                 'timeenrolled' => $timeenrolled,
+                                 'timestarted' => $timeenrolled,
+                                 'modifiedtime' => $modifiedtime];
                     $DB->insert_record('local_iomad_track', $entry);
                 }
             }
