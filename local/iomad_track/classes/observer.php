@@ -250,12 +250,12 @@ class observer {
                     $broken = false;
                     if (empty($comprec->timeenrolled)) {
                         $broken = true;
-                        $comprec->timeenrolled = $enrolrec->timecreated;
+                        $comprec->timeenrolled = $enrolrec->timestart;
                     }
             
                     if (empty($comprec->timestarted)) {
                         $broken = true;
-                        $comprec->timestarted = $enrolrec->timecreated;
+                        $comprec->timestarted = $enrolrec->timestart;
                     }
             
                     if ($broken) {
@@ -328,7 +328,7 @@ class observer {
                 $completion->coursename = $courserec->fullname;
                 $completion->userid = $userid;
                 $completion->timecompleted = $comprec->timecompleted;
-                $completion->timeenrolled = $enrolrec->timecreated;
+                $completion->timeenrolled = $enrolrec->timestart;
                 $completion->timestarted = $comprec->timestarted;
                 $completion->finalscore = $finalscore;
                 $completion->companyid = $companyid;
@@ -513,7 +513,10 @@ class observer {
             return true;
         }
 
-        $timeenrolled = $enrolrec->timecreated;
+        $timeenrolled = $enrolrec->timestart;
+        if (empty($timeenrolled)) {
+            $timeenrolled = $enrolrec->timecreated;
+        }
 
         // Is this course a license course?
         if ($DB->get_record('iomad_courses', array('courseid' => $courseid, 'licensed' => 1))) {
@@ -617,9 +620,13 @@ class observer {
                                                      array('userid' => $userid,
                                                            'courseid' => $courseid))) {
                 foreach ($entries as $entry) {
+                    // Sanitising
+                    if (empty($enrolrec->timestart)) {
+                        $enrolrec->timestart = $enrolrec->timecreated;
+                    }
                     // We already have an entry.  Change the issue time.
-                    $entry->timeenrolled = $enrolrec->timecreated;
-                    $entry->timestarted = $enrolrec->timecreated;
+                    $entry->timeenrolled = $enrolrec->timestart;
+                    $entry->timestarted = $enrolrec->timestart;
                     $entry->modifiedtime = $modifiedtime;
                     $DB->update_record('local_iomad_track', $entry);
                 }
