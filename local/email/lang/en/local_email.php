@@ -23,6 +23,7 @@
 
 $string['add_template_button'] = 'Override';
 $string['addnewtemplate'] = 'Override a default template';
+$string['addtemplateadhoc'] = 'Add new email template adhoc task';
 $string['applytemplateset'] = 'Apply template set \'{$a}\' to companies';
 $string['backtocompanytemplates'] = 'Finish editing template set';
 $string['blocktitle'] = 'Email templates';
