@@ -90,18 +90,17 @@ class course_table extends table_sql {
 
         // Get the company details.
         $company = new company($row->companyid);
+        $userfilter = "";
 
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
             $parentcompanies = $company->get_parent_companies_recursive();
-    
+
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
     
             // Deal with department tree.
@@ -307,6 +306,7 @@ class course_table extends table_sql {
 
         // Get the company details.
         $company = new company($row->companyid);
+        $userfilter = "";
 
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
@@ -314,11 +314,9 @@ class course_table extends table_sql {
     
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
     
             // Deal with department tree.
@@ -478,6 +476,7 @@ class course_table extends table_sql {
 
         // Get the company details.
         $company = new company($row->companyid);
+        $userfilter = "";
 
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
@@ -485,11 +484,9 @@ class course_table extends table_sql {
     
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
     
             // Deal with department tree.
@@ -651,6 +648,7 @@ class course_table extends table_sql {
 
         // Get the company details.
         $company = new company($row->companyid);
+        $userfilter = "";
 
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
@@ -658,11 +656,9 @@ class course_table extends table_sql {
 
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
 
             // Deal with department tree.
@@ -827,6 +823,7 @@ class course_table extends table_sql {
 
         // Get the company details.
         $company = new company($row->companyid);
+        $userfilter = "";
 
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
@@ -834,11 +831,9 @@ class course_table extends table_sql {
 
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
 
             // Deal with department tree.
@@ -991,6 +986,7 @@ class course_table extends table_sql {
 
         // Get the company details.
         $company = new company($row->companyid);
+        $userfilter = "";
 
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
@@ -998,11 +994,9 @@ class course_table extends table_sql {
 
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
 
             // Deal with department tree.
@@ -1154,6 +1148,9 @@ class course_table extends table_sql {
     public function col_usernotstarted($row) {
         global $output, $CFG, $USER, $DB, $params, $childcompanies;
 
+        // Set some defaults.
+        $userfilter = "";
+
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
             // Get the company details.
@@ -1162,11 +1159,9 @@ class course_table extends table_sql {
 
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
 
             // Deal with department tree.
@@ -1320,6 +1315,9 @@ class course_table extends table_sql {
     public function col_usersummary($row) {
         global $output, $CFG, $USER, $DB, $params, $childcompanies;
 
+        // Set some defaults
+        $userfilter = "";
+
         // Is this rolled up or not?
         if (!$params['showsummary'] || empty($childcompanies)) {
             // Get the company details.
@@ -1328,11 +1326,9 @@ class course_table extends table_sql {
 
             // Deal with parent company managers
             if (!empty($parentcompanies)) {
-                $userfilter = " AND userid NOT IN (
+                $userfilter = " AND cu.userid NOT IN (
                                  SELECT userid FROM {company_users}
                                  WHERE companyid IN (" . implode(',', array_keys($parentcompanies)) . "))";
-            } else {
-                $userfilter = "";
             }
 
             // Deal with department tree.
