@@ -436,18 +436,6 @@ if (empty($frm->username) && $authsequence[0] != 'shibboleth') {  // See bug 518
     $frm->password = "";
 }
 
-// IOMAD - changes to display the instructions.
-$auth_instructions = "auth_instructions" . $postfix;
-if (!empty($CFG->registerauth) or is_enabled_auth('none') or !empty($CFG->$auth_instructions)) {
-    if (!empty($CFG->local_iomad_signup_showinstructions)) {
-        $show_instructions = true;
-    } else {
-        $show_instructions = false;
-    }
-} else {
-    $show_instructions = false;
-}
-
 if (!empty($SESSION->loginerrormsg) || !empty($SESSION->logininfomsg)) {
     // We had some messages before redirect, show them now.
     $errormsg = $SESSION->loginerrormsg ?? '';
