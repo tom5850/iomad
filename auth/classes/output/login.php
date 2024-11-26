@@ -131,6 +131,11 @@ class login implements renderable, templatable {
             $this->instructions = get_string('loginsteps', 'core', 'signup.php');
         }
 
+        // IOAMD - turn off instructions if we don't have it set.
+        if (empty($CFG->local_iomad_signup_showinstructions)) {
+            $this->instructions = "";
+        }
+
         if ($CFG->maintenance_enabled == true) {
             if (!empty($CFG->maintenance_message)) {
                 $this->maintenance = $CFG->maintenance_message;
