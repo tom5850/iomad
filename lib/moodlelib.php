@@ -389,16 +389,8 @@ define ('BLOG_COURSE_LEVEL', 3);
 define ('BLOG_SITE_LEVEL', 4);
 define ('BLOG_GLOBAL_LEVEL', 5);
 
-
-// Tag constants.
-/**
- * To prevent problems with multibytes strings,Flag updating in nav not working on the review page. this should not exceed the
- * length of "varchar(255) / 3 (bytes / utf-8 character) = 85".
- * TODO: this is not correct, varchar(255) are 255 unicode chars ;-)
- *
- * @todo define(TAG_MAX_LENGTH) this is not correct, varchar(255) are 255 unicode chars ;-)
- */
-define('TAG_MAX_LENGTH', 50);
+/** The maximum length of a tag */
+define('TAG_MAX_LENGTH', 255);
 
 // Password policy constants.
 define ('PASSWORD_LOWER', 'abcdefghijklmnopqrstuvwxyz');
@@ -1185,6 +1177,7 @@ function purge_all_caches() {
  *
  * @param bool[] $options Specific parts of the cache to purge. Valid options are:
  *        'muc'    Purge MUC caches?
+ *        'courses' Purge all course caches, or specific course caches (CLI only)
  *        'theme'  Purge theme cache?
  *        'lang'   Purge language string cache?
  *        'js'     Purge javascript cache?
@@ -1200,8 +1193,7 @@ function purge_caches($options = []) {
     }
     if ($options['muc']) {
         cache_helper::purge_all();
-    }
-    if ($options['courses']) {
+    } else if ($options['courses']) {
         if ($options['courses'] === true) {
             $courseids = [];
         } else {
@@ -1262,6 +1254,9 @@ function purge_other_caches() {
     remove_dir($CFG->localcachedir, true);
     set_config('localcachedirpurged', time());
     make_localcache_directory('', true);
+
+    // Rewarm the bootstrap.php files so the siteid is always present after a purge.
+    initialise_local_config_cache();
     \core\task\manager::clear_static_caches();
 }
 
@@ -4381,7 +4376,7 @@ function hash_internal_user_password(#[\SensitiveParameter] string $password, $f
  * It will remove Web Services user tokens too.
  *
  * @param stdClass $user User object (password property may be updated).
- * @param string $password Plain text password.
+ * @param string|null $password Plain text password.
  * @param bool $fasthash If true, use a low cost factor when generating the hash
  *                       This is much faster to generate but makes the hash
  *                       less secure. It is used when lots of hashes need to
@@ -4390,7 +4385,7 @@ function hash_internal_user_password(#[\SensitiveParameter] string $password, $f
  */
 function update_internal_user_password(
         stdClass $user,
-        #[\SensitiveParameter] string $password,
+        #[\SensitiveParameter] ?string $password,
         bool $fasthash = false
 ): bool {
     global $CFG, $DB;
@@ -7501,11 +7496,12 @@ function get_plugins_with_function($function, $file = 'lib.php', $include = true
         foreach ($pluginfunctions as $plugintype => $plugins) {
             foreach ($plugins as $plugin => $unusedfunction) {
                 $component = $plugintype . '_' . $plugin;
-                if ($hooks = di::get(hook\manager::class)->get_hooks_deprecating_plugin_callback($plugincallback)) {
-                    if (di::get(hook\manager::class)->is_deprecating_hook_present($component, $plugincallback)) {
+                $hookmanager = di::get(hook\manager::class);
+                if ($hooks = $hookmanager->get_hooks_deprecating_plugin_callback($plugincallback)) {
+                    if ($hookmanager->is_deprecating_hook_present($component, $plugincallback)) {
                         // Ignore the old callback, it is there only for older Moodle versions.
                         unset($pluginfunctions[$plugintype][$plugin]);
-                    } else {
+                    } else if ($hookmanager->warn_on_unmigrated_legacy_hooks()) {
                         $hookmessage = count($hooks) == 1 ? reset($hooks) : 'one of  ' . implode(', ', $hooks);
                         debugging(
                             "Callback $plugincallback in $component component should be migrated to new " .
@@ -7746,7 +7742,7 @@ function component_callback($component, $function, array $params = array(), $def
                     // Do not call the old lib.php callback,
                     // it is there for compatibility with older Moodle versions only.
                     return null;
-                } else {
+                } else if ($hookmanager->warn_on_unmigrated_legacy_hooks()) {
                     $hookmessage = count($hooks) == 1 ? reset($hooks) : 'one of  ' . implode(', ', $hooks);
                     debugging(
                         "Callback $function in $component component should be migrated to new hook callback for $hookmessage",
@@ -7848,7 +7844,7 @@ function component_class_callback($classname, $methodname, array $params, $defau
                 // Do not call the old class callback,
                 // it is there for compatibility with older Moodle versions only.
                 return null;
-            } else {
+            } else if ($hookmanager->warn_on_unmigrated_legacy_hooks()) {
                 $hookmessage = count($hooks) == 1 ? reset($hooks) : 'one of  ' . implode(', ', $hooks);
                 debugging("Callback $callback in $component component should be migrated to new hook callback for $hookmessage",
                         DEBUG_DEVELOPER);

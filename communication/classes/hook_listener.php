@@ -214,8 +214,13 @@ class hook_listener {
             groupid: $group->id,
             context: $context,
         );
+
+        // Filter out users who are not active in this course.
+        $enrolledusers = helper::get_enrolled_users_for_course($course, true);
+        $userids = array_intersect($hook->userids, $enrolledusers);
+
         $communication->add_members_to_room(
-            userids: $hook->userids,
+            userids: $userids,
         );
     }
 
@@ -437,8 +442,10 @@ class hook_listener {
                     courseid: $course->id,
                     context: $coursecontext,
                 );
-                $communication->get_room_user_provider()->remove_members_from_room(userids: [$user->id]);
-                $communication->get_processor()->delete_instance_user_mapping(userids: [$user->id]);
+                if ($communication->get_processor() !== null) {
+                    $communication->get_room_user_provider()->remove_members_from_room(userids: [$user->id]);
+                    $communication->get_processor()->delete_instance_user_mapping(userids: [$user->id]);
+                }
             } else {
                 // If group mode is set then handle the group communication rooms.
                 $coursegroups = groups_get_all_groups(courseid: $course->id);
@@ -447,8 +454,11 @@ class hook_listener {
                         groupid: $coursegroup->id,
                         context: $coursecontext,
                     );
-                    $communication->get_room_user_provider()->remove_members_from_room(userids: [$user->id]);
-                    $communication->get_processor()->delete_instance_user_mapping(userids: [$user->id]);
+                    if ($communication->get_processor() !== null) {
+                        $communication->get_room_user_provider()->remove_members_from_room(userids: [$user->id]);
+                        $communication->get_processor()->delete_instance_user_mapping(userids: [$user->id]);
+                    }
+
                 }
             }
         }

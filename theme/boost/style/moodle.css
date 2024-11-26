@@ -24971,6 +24971,10 @@ a.disabled {
   color: #6a737b;
 }
 
+a.btn.disabled {
+  opacity: 1;
+}
+
 body.lockscroll {
   height: 100%;
   overflow: hidden;
@@ -25026,9 +25030,6 @@ dd:after {
 }
 .inplaceeditable.inplaceeditingon select {
   margin-bottom: 0;
-}
-.inplaceeditable .quickediticon .icon {
-  font-size: medium;
 }
 .inplaceeditable .quickediticon img {
   opacity: 0.2;
@@ -25671,25 +25672,24 @@ input[disabled] {
   }
   .nav-tabs:not(.more-nav) .nav-link.active,
   .nav-pills .nav-link.active {
-    color: #6a737b;
-    border-color: #6a737b;
-    border-color: #6a737b;
+    color: #0f6cbf;
+    border-color: #0f6cbf;
   }
   .nav-tabs:not(.more-nav) .nav-link.active:hover,
   .nav-pills .nav-link.active:hover {
     color: #fff;
-    background-color: #6a737b;
+    background-color: #0f6cbf;
     border-color: #6a737b;
   }
   .nav-tabs:not(.more-nav) .nav-link.active:focus, .nav-tabs:not(.more-nav) .nav-link.active.focus,
   .nav-pills .nav-link.active:focus,
   .nav-pills .nav-link.active.focus {
-    box-shadow: 0 0 0 0.2rem rgba(106, 115, 123, 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(15, 108, 191, 0.5);
   }
   .nav-tabs:not(.more-nav) .nav-link.active.disabled, .nav-tabs:not(.more-nav) .nav-link.active:disabled,
   .nav-pills .nav-link.active.disabled,
   .nav-pills .nav-link.active:disabled {
-    color: #6a737b;
+    color: #0f6cbf;
     background-color: transparent;
   }
   .nav-tabs:not(.more-nav) .nav-link.active:not(:disabled):not(.disabled):active, .nav-tabs:not(.more-nav) .nav-link.active:not(:disabled):not(.disabled).active, .show > .nav-tabs:not(.more-nav) .nav-link.active.dropdown-toggle,
@@ -25697,14 +25697,14 @@ input[disabled] {
   .nav-pills .nav-link.active:not(:disabled):not(.disabled).active,
   .show > .nav-pills .nav-link.active.dropdown-toggle {
     color: #fff;
-    background-color: #6a737b;
+    background-color: #0f6cbf;
     border-color: #6a737b;
   }
   .nav-tabs:not(.more-nav) .nav-link.active:not(:disabled):not(.disabled):active:focus, .nav-tabs:not(.more-nav) .nav-link.active:not(:disabled):not(.disabled).active:focus, .show > .nav-tabs:not(.more-nav) .nav-link.active.dropdown-toggle:focus,
   .nav-pills .nav-link.active:not(:disabled):not(.disabled):active:focus,
   .nav-pills .nav-link.active:not(:disabled):not(.disabled).active:focus,
   .show > .nav-pills .nav-link.active.dropdown-toggle:focus {
-    box-shadow: 0 0 0 0.2rem rgba(106, 115, 123, 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(15, 108, 191, 0.5);
   }
 }
 @media (max-width: 576px) and (max-height: 320px) {
@@ -25981,7 +25981,12 @@ blockquote {
   margin: 0 0.5rem 1rem;
   padding-left: 1rem;
   color: #495057;
-  border-left: 5px solid #ced4da;
+  border-left: 5px solid #8f959e;
+}
+
+.pagelayout-maintenance .page-header-headings,
+.pagelayout-secure .page-header-headings {
+  background-color: #fff;
 }
 
 /* Prevent long strings exceeding page width */
@@ -27529,13 +27534,13 @@ aside[id^=block-region-side-] .block_recentlyaccesseditems .card:nth-of-type(n+4
   width: 98%;
   margin: 10px auto;
 }
-.maincalendar .calendar_event_category:hover a,
-.maincalendar .calendar_event_course:hover a,
-.maincalendar .calendar_event_site:hover a,
-.maincalendar .calendar_event_group:hover a,
-.maincalendar .calendar_event_user:hover a {
-  color: #094478;
-  text-decoration: underline;
+.maincalendar .calendar_event_category a:has(> .icon):hover,
+.maincalendar .calendar_event_course a:has(> .icon):hover,
+.maincalendar .calendar_event_site a:has(> .icon):hover,
+.maincalendar .calendar_event_group a:has(> .icon):hover,
+.maincalendar .calendar_event_user a:has(> .icon):hover {
+  color: #07345a;
+  text-decoration: none;
 }
 .maincalendar .calendar_event_category {
   border-color: #e0cbe0;
@@ -27754,7 +27759,10 @@ table.calendartable caption {
   section:not(#region-main) .block.block_calendar_month .maincalendar .calendarwrapper .previous,
   section:not(#region-main) .block.block_calendar_month .maincalendar .calendarwrapper .next {
     width: 30%;
-    font-size: 0.8em;
+  }
+  section:not(#region-main) .block.block_calendar_month .maincalendar .calendarwrapper .previous .arrow_text,
+  section:not(#region-main) .block.block_calendar_month .maincalendar .calendarwrapper .next .arrow_text {
+    display: none;
   }
   section:not(#region-main) .block.block_calendar_month .maincalendar .calendartable.calendarmonth th,
   section:not(#region-main) .block.block_calendar_month .maincalendar .calendartable.calendarmonth td {
@@ -28455,6 +28463,7 @@ span.editinstructions {
   text-decoration: none;
   z-index: 9999;
   border: 0 solid transparent;
+  width: fit-content;
   color: #00434e;
   background-color: #cce6ea;
   border-color: #b8dce2;
@@ -29776,6 +29785,9 @@ span.editinstructions .alert-link {
 .bulkenabled .bulk-hidden {
   display: none !important;
 }
+.bulkenabled .section {
+  margin-left: 1rem;
+}
 .bulkenabled .section:not(:first-child) {
   margin-top: 1.5rem;
 }
@@ -30329,11 +30341,6 @@ body.drawer-ease {
 /* The javascript is adding a style="height: 0px;" to this element - we need to set the min-height so the height is ignored. */
 .filepicker .moodle-dialogue-bd {
   min-height: 520px;
-}
-
-.file-picker .fp-navbar {
-  min-height: 40px;
-  padding: 4px;
 }
 
 .fp-navbar {
@@ -35117,12 +35124,12 @@ table .sticky-column {
   background-color: inherit;
 }
 
-.table-dynamic .loading-icon {
+.table-dynamic > .loading-icon {
   position: absolute;
   left: calc(50% - 1.5rem);
   top: 200px;
 }
-.table-dynamic .loading-icon .icon {
+.table-dynamic > .loading-icon .icon {
   max-height: 3rem;
   max-width: 3rem;
   font-size: 3rem;
@@ -36805,6 +36812,25 @@ span[data-flexitour=container][x-placement=right] div[data-role=arrow]:after, sp
 }
 .modal .close:not(:disabled):not(.disabled):hover, .modal .close:not(:disabled):not(.disabled):focus {
   opacity: inherit;
+}
+
+/* Bug fix for TinyMCE menu when in fullscreen mode. */
+body.tox-fullscreen .modal-dialog {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+}
+body.tox-fullscreen .modal-dialog .modal-header {
+  height: 0;
+  padding: 0;
+}
+body.tox-fullscreen .modal-dialog .tox-tinymce-aux {
+  position: relative;
+}
+
+/* Bug fix TinyMCE menu width dropdowns when in fullscreen mode. */
+body.tox-fullscreen .tox.tox-tinymce-aux {
+  position: relative !important;
 }
 
 .layout.fullscreen {

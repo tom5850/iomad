@@ -172,7 +172,7 @@ class custom_fields {
 
                 $columns[] = (new column(
                     'customfield_' . $field->get('shortname'),
-                    new lang_string('customfieldcolumn', 'core_reportbuilder', $field->get_formatted_name()),
+                    new lang_string('customfieldcolumn', 'core_reportbuilder', $field->get_formatted_name(false)),
                     $this->entityname
                 ))
                     ->add_joins($this->get_joins())
@@ -261,7 +261,7 @@ class custom_fields {
                 $filter = (new filter(
                     $typeclass,
                     'customfield_' . $field->get('shortname'),
-                    new lang_string('customfieldcolumn', 'core_reportbuilder', $field->get_formatted_name()),
+                    new lang_string('customfieldcolumn', 'core_reportbuilder', $field->get_formatted_name(false)),
                     $this->entityname,
                     $datafieldsql
                 ))
@@ -271,12 +271,7 @@ class custom_fields {
                 // Options are stored inside configdata json string and we need to convert it to array.
                 if ($field->get('type') === 'select') {
                     $filter->set_options_callback(static function() use ($field): array {
-                        $options = explode("\r\n", $field->get_configdata_property('options'));
-                        // Method set_options starts using array at index 1. we shift one position on this array.
-                        // In course settings this menu has an empty option and we need to respect that.
-                        array_unshift($options, " ");
-                        unset($options[0]);
-                        return $options;
+                        return $field->get_options();
                     });
                 }
 

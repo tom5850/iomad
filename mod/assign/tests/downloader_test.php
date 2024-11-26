@@ -57,7 +57,7 @@ class downloader_test extends \advanced_testcase {
         bool $blindmarking,
         bool $downloadasfolder,
         array $expected
-    ) {
+    ): void {
         global $CFG;
         $this->resetAfterTest();
         $this->setAdminUser();
@@ -116,7 +116,7 @@ class downloader_test extends \advanced_testcase {
             }
             $datagenerator->create_submission([
                 'userid' => $user->id,
-                'assignid' => $cm->id,
+                'cmid' => $cm->id,
                 'file' => implode(',', $files),
             ]);
         }
