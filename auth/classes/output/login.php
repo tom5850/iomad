@@ -102,7 +102,10 @@ class login implements renderable, templatable {
         $this->languagemenu = $languagedata->export_for_action_menu($OUTPUT);
         $this->canloginasguest = $CFG->guestloginbutton && !isguestuser();
         $this->canloginbyemail = !empty($CFG->authloginviaemail);
-        $this->cansignup = $CFG->registerauth == 'email' || !empty($CFG->registerauth);
+
+        // IOMAD - need to check our settings for signup link too.
+        $this->cansignup = (!empty($CFG->local_iomad_signup_showinstructions) &&
+                           ($CFG->registerauth == 'email' || !empty($CFG->registerauth)));
         if ($CFG->rememberusername == 0) {
             $this->cookieshelpicon = new help_icon('cookiesenabledonlysession', 'core');
         } else {
