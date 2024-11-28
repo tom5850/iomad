@@ -225,8 +225,8 @@ class observer {
                                                   AND timeenrolled < :timehigh",
                                                   ['userid' => $userid,
                                                    'courseid' => $courseid,
-                                                   'timelow' => $enrolrec->timecreated - 10,
-                                                   'timehigh' => $enrolrec->timecreated + 10])) {
+                                                   'timelow' => $enrolrec->timestart - 10,
+                                                   'timehigh' => $enrolrec->timestart + 10])) {
                 foreach ($trackrecs as $trackrec) {
                     // Is this a duplicate event?
                     if ($trackrec->timecompleted !=null && (round($trackrec->timecompleted  / 10 ) * 10) != (round($comprec->timecompleted /10) *10)) {
@@ -271,7 +271,6 @@ class observer {
                     if (!empty($offset)) {
                         $trackrec->timeexpires = $trackrec->timecompleted + $offset;
                     }
-
                     $trackrec->modifiedtime = time();
                     $DB->update_record('local_iomad_track', $trackrec);
                     // Record the certificate.
