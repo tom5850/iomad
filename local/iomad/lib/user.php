@@ -1115,6 +1115,10 @@ class company_user {
             }
             // All OK commit the transaction.
             $transaction->allow_commit();
+
+            // Clear the course cache as can cause confusion for what is/isn't completed.
+            rebuild_course_cache($courseid, true);
+
         } catch(Exception $e) {
             $transaction->rollback($e);
         }
