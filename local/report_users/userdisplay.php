@@ -442,12 +442,9 @@ if ($validonly) {
     $validsql = "";
 }
 
-if (iomad::has_capability('block/iomad_company_admin:company_add', $companycontext)) {
-    $companysql = "";
-} else {
-    $companysql = " AND lit.companyid IN (SELECT DISTINCT companyid FROM {company_users} WHERE userid = :myuserid AND managertype !=0) ";
-    $sqlparams['myuserid'] = $USER->id;
-}
+// Only show entries tied to my current company.
+$companysql = " AND lit.companyid = :mycompanyid";
+$sqlparams['mycompanyid'] = $companyid;
 
 $companycourses = $company->get_menu_courses(true);
 if (empty($companycourses)) {
