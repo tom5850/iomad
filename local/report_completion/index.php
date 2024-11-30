@@ -759,6 +759,10 @@ if (empty($courseid)) {
             $courseheaders[] = get_string('licensedateallocated', 'block_iomad_company_admin');
             $coursecolumns[] = 'licenseuserused';
             $coursecolumns[] = 'licenseunused';
+            if ($params['showpercentage'] == 1) {
+                $courseheaders[] = get_string('neverassigned', 'local_report_completion');
+                $coursecolumns[] = 'neverassigned';
+            }
         }
     }
     if ($showcharts) {
@@ -771,6 +775,10 @@ if (empty($courseid)) {
         $coursecolumns[] = 'usernotstarted';
         $coursecolumns[] = 'userinprogress';
         $coursecolumns[] = 'usercompleted';
+        if ($params['showpercentage'] == 1) {
+            $courseheaders[] = get_string('neverenrolled', 'local_report_completion');
+            $coursecolumns[] = 'neverenrolled';
+        }
     }
 
     $coursetable->set_sql($selectsql, $fromsql, $wheresql, $sqlparams);
@@ -1067,32 +1075,51 @@ if (empty($courseid)) {
     $buttons = $output->render($percentageselect) . "&nbsp" .$buttons;;
 
     $total = $DB->count_records_sql("SELECT count(DISTINCT lit.id) FROM $fromsql WHERE $wheresql", $sqlparams);
-echo "total = $total<br>";
     $totalcompleted = $DB->count_records_sql("SELECT count(DISTINCT lit.id) FROM $fromsql WHERE lit.timecompleted > 0 AND $wheresql", $sqlparams);
-echo "totalcompleted = $totalcompleted<br>";
     $totalstarted = $DB->count_records_sql("SELECT count(DISTINCT lit.id) FROM $fromsql WHERE lit.timecompleted > 0 AND $wheresql", $sqlparams);
-echo "totalstarted = $totalstarted<br>";
+    $totalstring = $total;
+    $totalcompletedstring = $totalcompleted;
+    $totalstartedstring = $totalstarted;
 
     if ($showpercentage == 2) {
-        if (!empty($total)) {
-            $totalstarted = get_string('percents','moodle', number_format($totalstarted * 100 / $total,2 )); 
-            $totalcompleted = get_string('percents', 'moodle', number_format($totalcompleted * 100 / $total, 2));
-        } 
+        $totalstarted = !empty($total) ? number_format($totalstarted * 100 / $total,2 ) : 0; 
+        $totalstartedstring = get_string('percents','moodle', $totalstarted); 
+        $totalcompleted = !empty($total) ? number_format($totalcompleted * 100 / $total, 2) : 0;
+        $totalcompletedstring = get_string('percents', 'moodle', $totalcompleted);
     } else if ($showpercentage == 1) {
         $totalcompanyusers = $DB->count_records_sql("SELECT count(DISTINCT lit.userid) FROM {company_users} lit
                                                      JOIN {user} u ON (lit.userid = u.id)
                                                      JOIN {department} d ON (lit.departmentid = d.id)
+                                                     JOIN {company_users} cu ON (u.id = cu.userid
+                                                                                 AND lit.userid = cu.userid
+                                                                                 AND d.id = cu.departmentid
+                                                                                 AND lit.companyid = cu.companyid
+                                                                                 AND d.company = cu.companyid)
                                                      WHERE u.deleted=0 $suspendedsql AND cu.educator = 0 $companysql $departmentsql",
                                                      $sqlparams);
-        if (!empty($total)) {
-            $total = get_string('percents','moodle', number_format($total * 100 / $totalcompanyusers, 2)); 
-            $totalstarted = get_string('percents','moodle', number_format($totalstarted * 100 / $totalcompanyusers, 2)); 
-            $totalcompleted = get_string('percents', 'moodle', number_format($totalcompleted * 100 / $totalcompanyusers, 2));
-        }
-        
+            $total = !empty($totalcompanyusers) ? number_format($total * 100 / $totalcompanyusers, 2) : 0;
+            $totalstring = get_string('percents','moodle', $total); 
+            $totalstarted = !empty($totalcompanyusers) ? number_format($totalstarted * 100 / $totalcompanyusers, 2) : 0; 
+            $totalstartedstring = get_string('percents','moodle', $totalstarted); 
+            $totalcompleted = !empty($totalcompanyusers) ? number_format($totalcompleted * 100 / $totalcompanyusers, 2) : 0;
+            $totalcompletedstring = get_string('percents', 'moodle', $totalcompleted);
+            $remainder = $totalcompanyusers - $total - $totalstarted - $totalcompleted;
+            $remainder = !empty($totalcompanyusers) ? number_format($remainder * 100 / $totalcompanyusers, 2) : 0;
+            $remainderstring = get_string('percents', 'moodle', $remainder);
     }
-    $summarystring = get_string('usercoursetotal', 'block_iomad_company_admin', (object) ['total' => $total, 'totalstarted' => $totalstarted, 'totalcompleted' => $totalcompleted]);
-    $buttons = $summarystring . "&nbsp $buttons";
+    if ($params['showpercentage'] != 1) {
+        $summarystring = get_string('usercoursetotal', 'block_iomad_company_admin',
+                                    (object) ['total' => $totalstring,
+                                              'totalstarted' => $totalstartedstring,
+                                              'totalcompleted' => $totalcompletedstring]);
+    } else {
+        $summarystring = get_string('usercoursetotalcompany', 'block_iomad_company_admin',
+                                    (object) ['total' => $totalstring,
+                                              'totalstarted' => $totalstartedstring,
+                                              'totalcompleted' => $totalcompletedstring,
+                                              'remainder' => $remainderstring]);
+    }
+    $buttons = "<span class='coursestats'>" . $summarystring . "</span>$buttons";
     $PAGE->set_button($buttons);
 
     if (!$table->is_downloading()) {
