@@ -145,7 +145,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -190,7 +190,8 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         // Count the used licenses.
-        $licensesallocated = $DB->count_records_sql("SELECT count(lit.id) FROM {local_iomad_track} lit
+        $licensesallocated = $DB->count_records_sql("SELECT COUNT(lit.id)
+                                                     FROM {local_iomad_track} lit
                                                      JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                      JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
                                                      WHERE lit.courseid = :courseid
@@ -355,7 +356,8 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         // Count the used licenses.
-        $licensesallocated = $DB->count_records_sql("SELECT count(lit.id) FROM {local_iomad_track} lit
+        $licensesallocated = $DB->count_records_sql("SELECT COUNT(lit.id)
+                                                     FROM {local_iomad_track} lit
                                                      JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                      JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
                                                      WHERE lit.courseid = :courseid
@@ -453,7 +455,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -583,7 +585,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -611,7 +613,8 @@ class course_table extends table_sql {
         }
 
         // Count the used licenses.
-        $licensesused = $DB->count_records_sql("SELECT count(DISTINCT lit.id) FROM {local_iomad_track} lit
+        $licensesused = $DB->count_records_sql("SELECT COUNT(lit.id)
+                                                FROM {local_iomad_track} lit
                                                 JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                 JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
                                                 WHERE lit.courseid = :courseid
@@ -712,7 +715,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -846,7 +849,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -980,7 +983,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -1113,7 +1116,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -1150,7 +1153,8 @@ class course_table extends table_sql {
         }
 
        // Count the non started users.
-        $notstarted = $DB->count_records_sql("SELECT count(lit.id) FROM {local_iomad_track} lit
+        $notstarted = $DB->count_records_sql("SELECT COUNT(lit.id)
+                                              FROM {local_iomad_track} lit
                                               JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                               JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
                                               WHERE lit.courseid = :courseid
@@ -1298,7 +1302,8 @@ class course_table extends table_sql {
                                            $sqlparams);
 
         // Count the non started users.
-        $notstarted = $DB->count_records_sql("SELECT count(lit.id) FROM {local_iomad_track} lit
+        $notstarted = $DB->count_records_sql("SELECT COUNT(lit.id)
+                                              FROM {local_iomad_track} lit
                                               JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                               JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
                                               WHERE lit.courseid = :courseid
@@ -1336,6 +1341,7 @@ class course_table extends table_sql {
         } else {
             $userfilter = " AND cu.educator = 0";
         }
+
         $companyuserfilter ="";
         $departmentsql ="";
         $cucompanysql = "cu.companyid = :companyid";
@@ -1394,7 +1400,7 @@ class course_table extends table_sql {
                                                   $sqlparams);
 
         } else if ($params['showpercentage'] == 2) {
-            $totalusers = $DB->count_records_sql("SELECT count(lit.id)
+            $totalusers = $DB->count_records_sql("SELECT COUNT(lit.id)
                                                   FROM {local_iomad_track} lit
                                                   JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                                   JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
@@ -1464,7 +1470,8 @@ class course_table extends table_sql {
                                            $sqlparams);
 
         // Count the non started users.
-        $notstarted = $DB->count_records_sql("SELECT count(lit.id) FROM {local_iomad_track} lit
+        $notstarted = $DB->count_records_sql("SELECT COUNT(lit.id)
+                                              FROM {local_iomad_track} lit
                                               JOIN {company_users} cu ON (lit.userid = cu.userid AND lit.companyid = cu.companyid)
                                               JOIN {user} u ON (lit.userid = u.id AND cu.userid = u.id)
                                               WHERE lit.courseid = :courseid
@@ -1478,7 +1485,6 @@ class course_table extends table_sql {
                                               $sqlparams);
         // get the rest in case we need it.
         $remainder = $totalusers - $completed - $started - $notstarted;
-
         if (!$this->is_downloading()) {
             $enrolledchart = new \core\chart_pie();
             $enrolledchart->set_doughnut(true); // Calling set_doughnut(true) we display the chart as a doughnut.
@@ -1540,7 +1546,7 @@ class course_table extends table_sql {
         global $DB;
         if (!$this->is_downloading()) {
             if ($this->countsql === NULL) {
-                $this->countsql = 'SELECT courseid FROM '.$this->sql->from.' WHERE '.$this->sql->where;
+                $this->countsql = 'SELECT lit.courseid FROM '.$this->sql->from.' WHERE '.$this->sql->where;
                 $this->countparams = $this->sql->params;
             }
             $subgrandtotal = $DB->get_records_sql($this->countsql, $this->countparams);
