@@ -1162,6 +1162,17 @@ class manager {
     protected function build_limitcourseids(\stdClass $formdata) {
         $limitcourseids = false;
 
+        // Set the companyid
+        $companyid = \iomad::get_my_companyid(\context_system::instance());
+        if ($companyid > 0) {
+            $company = new \company($companyid);
+            $companycontext = \core\context\company::instance($companyid);
+            $companycourses = array_keys($company->get_menu_courses(true, true));
+        } else {
+            $companycourses = [];
+            $companycontext = \context_system::instance();
+        }
+
         if (!empty($formdata->mycoursesonly)) {
             $limitcourseids = array_keys($this->get_my_courses(false));
         }
@@ -1174,6 +1185,9 @@ class manager {
             }
         }
 
+        if (!\iomad::has_capability('block/iomad_company_admin:company_view_all', $companycontext)) {
+            $limitcourseids = array_intersect($limitcourseids, $companycourses);
+        }
         return $limitcourseids;
     }
 
