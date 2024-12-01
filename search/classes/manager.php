@@ -1163,11 +1163,11 @@ class manager {
         $limitcourseids = false;
 
         // Set the companyid
-        $companyid = \iomad::get_my_companyid(\context_system::instance());
+        $companyid = \iomad::get_my_companyid(\context_system::instance(), false);
         if ($companyid > 0) {
             $company = new \company($companyid);
             $companycontext = \core\context\company::instance($companyid);
-            $companycourses = array_keys($company->get_menu_courses(true, true));
+            $companycourses = array_keys($company->get_menu_courses(true, false, false, false, false, true));
         } else {
             $companycourses = [];
             $companycontext = \context_system::instance();
@@ -1185,8 +1185,13 @@ class manager {
             }
         }
 
+        // IOMAD limit the courses to the company courses.
         if (!\iomad::has_capability('block/iomad_company_admin:company_view_all', $companycontext)) {
-            $limitcourseids = array_intersect($limitcourseids, $companycourses);
+            if (!empty($limitcourseids)) {
+                $limitcourseids = array_intersect($limitcourseids, $companycourses);
+            } else {
+                $limitcourseids = $companycourses;
+            }
         }
         return $limitcourseids;
     }
