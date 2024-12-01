@@ -846,7 +846,7 @@ if (empty($courseid)) {
                 $modinfo = get_coursemodule_from_id('', $completioncrit->moduleinstance);
                 
                 $completionheaders[$completioncrit->id] = format_string($completioncrit->get_title() . " " . $modinfo->name);
-                $gradeheaders[$completioncrit->id] = format_string(get_string('grade', 'grades') . " " . $modinfo->name);
+                $gradeheaders[$completioncrit->id] = format_string(get_string('grade', 'iomadcertificate') . " " . $modinfo->name);
                 $completioncolumns[$completioncrit->id] = "criteria_" . $completioncrit->id;
                 $gradecolumns[$completioncrit->id] = "grade_" . $completioncrit->id;
                 $completionids[] = $completioncrit->id;
@@ -1037,7 +1037,7 @@ if (empty($courseid)) {
     if (($courseid == 1 && $DB->get_records_sql("SELECT id FROM {iomad_courses} WHERE courseid IN (SELECT courseid FROM {local_iomad_track} WHERE companyid = :companyid) AND hasgrade = 1", array('companyid' => $company->id))) ||
         $DB->get_record_sql("SELECT id FROM {iomad_courses} WHERE courseid = :courseid AND hasgrade = 1", array('courseid' => $courseid))) {
         $columns[] = 'finalscore';
-        $headers[] = get_string('grade', 'grades');
+        $headers[] = get_string('grade', 'iomadcertificate');
     }
 
     // And finally the last of the columns.
