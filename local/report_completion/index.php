@@ -846,7 +846,7 @@ if (empty($courseid)) {
                 $modinfo = get_coursemodule_from_id('', $completioncrit->moduleinstance);
                 
                 $completionheaders[$completioncrit->id] = format_string($completioncrit->get_title() . " " . $modinfo->name);
-                $gradeheaders[$completioncrit->id] = format_string(get_string('grade') . " " . $modinfo->name);
+                $gradeheaders[$completioncrit->id] = format_string(get_string('grade', 'grades') . " " . $modinfo->name);
                 $completioncolumns[$completioncrit->id] = "criteria_" . $completioncrit->id;
                 $gradecolumns[$completioncrit->id] = "grade_" . $completioncrit->id;
                 $completionids[] = $completioncrit->id;
