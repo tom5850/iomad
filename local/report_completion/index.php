@@ -732,7 +732,7 @@ if (empty($courseid)) {
     $fromsql = "{local_iomad_track} lit JOIN {iomad_courses} ic ON (lit.courseid = ic.courseid)";
     $sqlparams = array('companyid' => $companyid) + $searchparams;
 
-    $wheresql = "lit.companyid = :companyid $coursesearchsql GROUP BY lit.courseid, lit.coursename, lit.companyid";
+    $wheresql = "lit.companyid = :companyid $coursesearchsql GROUP BY lit.courseid, lit.coursename, lit.companyid, ic.licensed";
 
     // Set up the headers.
     $courseheaders = [get_string('coursename', 'local_report_completion')];
