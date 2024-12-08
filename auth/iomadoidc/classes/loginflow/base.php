@@ -528,14 +528,14 @@ class base {
 
         $clientidname = "clientid" . $postfix;
         $clientsecretname = "clientsecret" . $postfix;
-        $tokenresourcename = "iomadoidcresource" . $postfix;
+        $iomadoidcresourcename = "iomadoidcresource" . $postfix;
         $iomadscopename = "scope" . $postfix;
         $clientid = (isset($this->config->$clientidname)) ? $this->config->$clientidname : null;
-        $clientsecret = (isset($this->config->$clientsecretname)) ? $this->config->clientsecretname : null;
+        $clientsecret = (isset($this->config->$clientsecretname)) ? $this->config->$clientsecretname : null;
         $redirecturi = (!empty($CFG->loginhttps)) ? str_replace('http://', 'https://', $CFG->wwwroot) : $CFG->wwwroot;
         $redirecturi .= '/auth/iomadoidc/';
         $tokenresource = (isset($this->config->$iomadoidcresourcename)) ? $this->config->$iomadoidcresourcename : null;
-        $scope = (isset($this->config->$iomadoidcscopename)) ? $this->config->$iomadoidcscopename : null;
+        $scope = (isset($this->config->$iomadscopename)) ? $this->config->$iomadscopename : null;
 
         $client = new iomadoidcclient($this->httpclient);
         $client->setcreds($clientid, $clientsecret, $redirecturi, $tokenresource, $scope);
