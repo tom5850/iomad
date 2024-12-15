@@ -4926,10 +4926,9 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
         }
 
         if ($filearea === 'summary' || $filearea === 'overviewfiles') {
-            // IOMAD - we don't want to force login in case it's on a different tenant url.
-            /*if ($CFG->forcelogin) {
+            if ($CFG->forcelogin) {
                 require_login();
-            }*/
+            }
 
             $filename = array_pop($args);
             $filepath = $args ? '/'.implode('/', $args).'/' : '/';
