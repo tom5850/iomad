@@ -95,6 +95,12 @@ class auth extends \auth_plugin_base {
     ];
 
     /**
+     * IOMAD
+     * @var text $postfix the postfix used for configuration when we have a company selected.
+     */
+    private $postfix = '';
+
+    /**
      * Constructor.
      */
     public function __construct() {
@@ -115,11 +121,13 @@ class auth extends \auth_plugin_base {
         $this->certpem = $this->get_file("{$this->spname}.pem");
         $this->certcrt = $this->get_file("{$this->spname}.crt");
 
+        // IOMAD.
         $companyid = iomad::get_my_companyid(context_system::instance(), false);
         $postfix = '';
         if (!empty($companyid)) {
             $postfix = "_$companyid";
         }
+        $this->postfix = $postfix;
 
         $fullconfig = (array) get_config('auth_iomadsaml2');
         $myconfig = array_merge($this->defaults, $fullconfig );
@@ -215,7 +223,13 @@ class auth extends \auth_plugin_base {
             $url = implode("\n", $url);
         }
 
-        $filename = md5($url) . '.idp.xml';
+        // IOMAD
+        if ($url == 'xml') {
+            $filename = md5($url) . $this->postfix . '.idp.xml';
+        } else {
+            $filename = md5($url) . '.idp.xml';
+        }
+
         return $this->get_file($filename);
     }
 
@@ -746,6 +760,14 @@ class auth extends \auth_plugin_base {
                 $user->mnethostid = $CFG->mnet_localhost_id;
 
                 $user->id = \user_create_user($user, true, true);
+                // IOMAD
+                $companyid = iomad::get_my_companyid(context_system::instance(), false);
+                if (empty($companyid)) {
+                    $companyid = 0;
+                }
+                $user->companyid = $companyid;
+                $user->id = \company_user::create($user);
+
                 $newuser = true;
                 // Store any custom profile fields.
                 profile_save_data($user);
