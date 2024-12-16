@@ -118,7 +118,7 @@ class auth extends \auth_plugin_base {
      * IOMAD
      * @var text $postfix the postfix used for configuration when we have a company selected.
      */
-    private $postfix = '';
+    protected $postfix = '';
 
     /**
      * Constructor.
