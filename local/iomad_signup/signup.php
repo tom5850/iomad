@@ -30,7 +30,7 @@ $wantedcompanyshort = optional_param('code', '', PARAM_CLEAN);
 $wanteddepartment = optional_param('dept', '', PARAM_CLEAN);
 
 // This page should no longer be used. Grab company parameters and redirect to core login page.
-$redirecturl = new moodle_url($CFG->wwwroot . '/login/index.php', ['id' => $wantedcompanyid, 'code' => $wantedcompanyshort, 'dept' => $wanteddepartment]);
+$redirecturl = new moodle_url($CFG->wwwroot . '/login/signup.php', ['id' => $wantedcompanyid, 'code' => $wantedcompanyshort, 'dept' => $wanteddepartment]);
 redirect($redirecturl);
 
 die;
