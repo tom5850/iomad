@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use auth_iomadsaml2\admin\saml2_settings;
+use auth_iomadsaml2\admin\iomadsaml2_settings;
 
 // @codingStandardsIgnoreStart
 require_once(__DIR__ . '/../../config.php');

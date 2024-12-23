@@ -25,7 +25,7 @@
 
 // NOTE: no MOODLE_INTERNAL test here, this file may be required by behat before including /config.php.
 
-use auth_iomadsaml2\admin\saml2_settings;
+use auth_iomadsaml2\admin\iomadsaml2_settings;
 use auth_iomadsaml2\task\metadata_refresh;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Mink\Exception\ExpectationException;
