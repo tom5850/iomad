@@ -39,11 +39,22 @@ class setting_idpmetadata extends admin_setting_configtextarea {
     /**
      * Constructor
      */
-    public function __construct() {
+    protected $postfix;
+    protected $companyid;
+    public function __construct($postfix = "") {
+
+        // IOMAD set the postfix.
+        $this->postfix = $postfix;
+        $this->companyid = 0;
+        if ("" != $postfix) {
+            list ($drop, $companyid) = explode('_', $postfix);
+            $this->companyid = $companyid;
+        }
+
         // All parameters are hardcoded because there can be only one instance:
         // When it validates, it saves extra configs, preventing this component from being reused as is.
         parent::__construct(
-            'auth_iomadsaml2/idpmetadata',
+            'auth_iomadsaml2/idpmetadata' . $postfix,
             get_string('idpmetadata', 'auth_iomadsaml2'),
             get_string('idpmetadata_help', 'auth_iomadsaml2'),
             '',

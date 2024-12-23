@@ -54,7 +54,7 @@ if ($ADMIN->fulltree) {
         new lang_string('auth_iomadsaml2description', 'auth_iomadsaml2')));
 
     // IDP Metadata.
-    $idpmetadata = new \auth_iomadsaml2\admin\setting_idpmetadata();
+    $idpmetadata = new \auth_iomadsaml2\admin\setting_idpmetadata($postfix);
     $idpmetadata->set_updatedcallback('auth_iomadsaml2_update_idp_metadata');
     $settings->add($idpmetadata);
 
