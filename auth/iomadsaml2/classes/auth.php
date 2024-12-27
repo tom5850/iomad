@@ -530,8 +530,9 @@ class auth extends \auth_plugin_base {
             $this->log(__FUNCTION__ . ' skipping to test connectivity first');
             // Inject JS to test connectivity to the login endpoint. Some networks may not be aware of the IdP.
             global $PAGE, $ME;
+	    $key= 'testendpoint' . $this->postfix;		
             $PAGE->requires->js_call_amd('auth_iomadsaml2/connectivity_test', 'init', [
-                $this->config->testendpoint,
+                $this->config->$key,
                 (new moodle_url($ME, ['saml' => 'on']))->out(),
             ]);
             return false;
