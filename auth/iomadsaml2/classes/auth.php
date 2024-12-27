@@ -214,6 +214,16 @@ class auth extends \auth_plugin_base {
      * @return string Metadata file path.
      */
     public function get_file_idp_metadata_file($url) {
+        // IOMAD
+		global $CFG;
+		require_once($CFG->dirroot . '/local/iomad/lib/company.php');
+		$companyid = iomad::get_my_companyid(context_system::instance(), false);
+		if (!empty($companyid)) {
+			$postfix = "_$companyid";
+		} else {
+			$postfix = "";
+		}
+        
         if (is_object($url)) {
             $url = (array)$url;
         }
@@ -223,13 +233,7 @@ class auth extends \auth_plugin_base {
             $url = implode("\n", $url);
         }
 
-        // IOMAD
-        if ($url == 'xml') {
-            $filename = md5($url) . $this->postfix . '.idp.xml';
-        } else {
-            $filename = md5($url) . '.idp.xml';
-        }
-
+        $filename = md5($url) . $this->postfix . '.idp.xml';
         return $this->get_file($filename);
     }
 
