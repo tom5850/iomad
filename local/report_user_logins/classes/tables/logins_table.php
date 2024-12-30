@@ -64,7 +64,16 @@ class logins_table extends table_sql {
     public function col_created($user) {
         global $CFG;
 
-        return date($CFG->iomad_date_format, $user->created);
+		// Query user time zone
+		$userTimezone = \core_date::get_user_timezone_object();
+		// Create DateTime object from the UNIX timestamp
+		$dateTime = new \DateTime();
+		$dateTime->setTimestamp($user->created);
+		$dateTime->setTimezone($userTimezone);
+		// Output date in user format
+		$userdate = $dateTime->format($CFG->iomad_date_format);
+
+        return $userdate;
     }
 
     /**
@@ -78,7 +87,16 @@ class logins_table extends table_sql {
         if ($user->urlfirstlogin == null) {
             return(get_string('never'));
         } else {
-            return date($CFG->iomad_date_format, $user->urlfirstlogin);
+				// Query user time zone
+				$userTimezone = \core_date::get_user_timezone_object();
+				// Create DateTime object from the UNIX timestamp
+				$dateTime = new \DateTime();
+				$dateTime->setTimestamp($user->urlfirstlogin);
+				$dateTime->setTimezone($userTimezone);
+				// Output date in user format
+				$userdate = $dateTime->format($CFG->iomad_date_format);
+			
+				return $userdate;
         }
     }
 
@@ -93,7 +111,16 @@ class logins_table extends table_sql {
         if ($user->urllastlogin == null) {
             return(get_string('never'));
         } else {
-            return date($CFG->iomad_date_format, $user->urllastlogin);
+			// Query user time zone
+			$userTimezone = \core_date::get_user_timezone_object();
+			// Create DateTime object from the UNIX timestamp
+			$dateTime = new \DateTime();
+			$dateTime->setTimestamp($user->urllastlogin);
+			$dateTime->setTimezone($userTimezone);
+			// Output date in user format
+			$userdate = $dateTime->format($CFG->iomad_date_format);
+		
+			return $userdate;
         }
     }
 
