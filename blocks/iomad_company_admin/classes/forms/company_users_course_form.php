@@ -169,7 +169,19 @@ class company_users_course_form extends moodleform {
                     if ($allow) {
                         $due = optional_param_array('due', array(), PARAM_INT);
                         if (!empty($due)) {
-                            $duedate = strtotime($due['year'] . '-' . $due['month'] . '-' . $due['day'] . ' ' . $due['hour'] . ':' . $due['minute']);
+							// Compile date string
+							$dueDateString = sprintf('%04d-%02d-%02d %02d:%02d', 
+								$due['year'], 
+								$due['month'], 
+								$due['day'], 
+								$due['hour'], 
+								$due['minute']);
+							// Query user time zone
+							$userTimezone = \core_date::get_user_timezone_object();
+							// Create DateTime object with user time zone
+							$dateTime = new \DateTime($dueDateString, $userTimezone);
+							// Get UNIX timestamp
+							$duedate = $dateTime->getTimestamp();
                         } else {
                             $duedate = 0;
                         }
