@@ -91,7 +91,16 @@ class emails_table extends table_sql {
     public function col_created($row) {
         global $CFG;
 
-        return date($CFG->iomad_date_format. " H:i:s", $row->created);
+		// Query user time zone
+		$userTimezone = \core_date::get_user_timezone_object();
+		// Create DateTime object from the UNIX timestamp
+		$dateTime = new \DateTime();
+		$dateTime->setTimestamp($row->created);
+		$dateTime->setTimezone($userTimezone);
+		// Output date in user format
+		$userdate = $dateTime->format($CFG->iomad_date_format . " H:i:s");
+
+        return $userdate;
     }
 
     /**
@@ -102,7 +111,16 @@ class emails_table extends table_sql {
     public function col_due($row) {
         global $CFG;
 
-        return date($CFG->iomad_date_format. " H:i:s", $row->due);
+		// Query user time zone
+		$userTimezone = \core_date::get_user_timezone_object();
+		// Create DateTime object from the UNIX timestamp
+		$dateTime = new \DateTime();
+		$dateTime->setTimestamp($row->due);
+		$dateTime->setTimezone($userTimezone);
+		// Output date in user format
+		$userdate = $dateTime->format($CFG->iomad_date_format . " H:i:s");
+
+        return $userdate;
     }
 
     /**
@@ -116,7 +134,16 @@ class emails_table extends table_sql {
         if (empty($row->sent)) {
             return get_string('never');
         } else {
-            return date($CFG->iomad_date_format. " H:i:s", $row->sent);
+			// Query user time zone
+			$userTimezone = \core_date::get_user_timezone_object();
+			// Create DateTime object from the UNIX timestamp
+			$dateTime = new \DateTime();
+			$dateTime->setTimestamp($row->sent);
+			$dateTime->setTimezone($userTimezone);
+			// Output date in user format
+			$userdate = $dateTime->format($CFG->iomad_date_format . " H:i:s");
+
+			return $userdate;
         }
     }
 
