@@ -42,7 +42,7 @@ foreach ($iomadsam2auth->metadataentities as $idpentity) {
     $metadataurlhash = md5($idpentity->metadataurl);
     $metadatasources[$metadataurlhash] = [
         'type' => 'xml',
-        'file' => "$CFG->dataroot/saml2/" . $metadataurlhash . $postfix . ".idp.xml"
+        'file' => "$CFG->dataroot/iomadsaml2/" . $metadataurlhash . $postfix . ".idp.xml"
     ];
 }
 
