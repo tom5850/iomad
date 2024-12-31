@@ -36,6 +36,8 @@ use Exception;
 use moodle_exception;
 use stdClass;
 use iomad;
+use company;
+use context_system;
 
 global $CFG;
 require_once($CFG->libdir.'/authlib.php');
@@ -149,6 +151,12 @@ class auth extends \auth_plugin_base {
         $this->certpem = $this->get_file("{$this->spname}.pem");
         $this->certcrt = $this->get_file("{$this->spname}.crt");
 
+		$companyid = iomad::get_my_companyid(context_system::instance(), false);
+        $postfix = '';
+        if (!empty($companyid)) {
+            $postfix = "_$companyid";
+        }
+        
         $fullconfig = (array) get_config('auth_iomadsaml2');
         $myconfig = array_merge($this->defaults, $fullconfig );
         // Do we have anything company specific?
@@ -168,7 +176,7 @@ class auth extends \auth_plugin_base {
         $this->metadatalist = $parser->parse($this->config->idpmetadata);
 
         // Fetch active entitiyIDs provided by the metadata and populate metadataentities list.
-        $idpentities = $DB->get_records('auth_iomadsaml2_idps', ['activeidp' => 1]);
+		$idpentities = $DB->get_records('auth_iomadsaml2_idps', ['activeidp' => 1, 'companyid' => $companyid]);
         foreach ($idpentities as $idpentity) {
             // Set name.
             $idpentity->name = empty($idpentity->displayname) ? $idpentity->defaultname : $idpentity->displayname;
@@ -201,7 +209,7 @@ class auth extends \auth_plugin_base {
      */
     public function get_saml2_directory() {
         global $CFG;
-        $directory = "{$CFG->dataroot}/saml2";
+        $directory = "{$CFG->dataroot}/iomadsaml2";
         if (!file_exists($directory)) {
             mkdir($directory);
         }
@@ -234,6 +242,15 @@ class auth extends \auth_plugin_base {
      * @return string Metadata file path.
      */
     public function get_file_idp_metadata_file($url) {
+		global $CFG;
+		require_once($CFG->dirroot . '/local/iomad/lib/company.php');
+		$companyid = iomad::get_my_companyid(context_system::instance(), false);
+		if (!empty($companyid)) {
+			$postfix = "_$companyid";
+		} else {
+			$postfix = "";
+		}
+        
         if (is_object($url)) {
             $url = (array)$url;
         }
@@ -244,12 +261,7 @@ class auth extends \auth_plugin_base {
         }
 
         // IOMAD
-        if ($url == 'xml') {
-            $filename = md5($url) . $this->postfix . '.idp.xml';
-        } else {
-            $filename = md5($url) . '.idp.xml';
-        }
-
+        $filename = md5($url) . $this->postfix . '.idp.xml';
         return $this->get_file($filename);
     }
 
