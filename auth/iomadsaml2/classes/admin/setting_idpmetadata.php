@@ -94,7 +94,7 @@ class setting_idpmetadata extends admin_setting_configtextarea {
     private function process_all_idps_metadata($idps) {
         global $DB;
 
-        $currentidpsrs = $DB->get_records('auth_iomadsaml2_idps');
+        $currentidpsrs = $DB->get_records('auth_iomadsaml2_idps', ['companyid' => $this->companyid]);
         $oldidps = array();
         foreach ($currentidpsrs as $idpentity) {
             if (!isset($oldidps[$idpentity->metadataurl])) {
@@ -188,6 +188,7 @@ class setting_idpmetadata extends admin_setting_configtextarea {
             $newidp->adminidp = 0;
             $newidp->defaultname = $idpname;
             $newidp->logo = $logo;
+            $newidp->companyid = $this->companyid;
 
             $DB->insert_record('auth_iomadsaml2_idps', $newidp);
         }
