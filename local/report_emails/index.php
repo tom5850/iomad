@@ -317,8 +317,7 @@ $select->label = get_string('templatetype', 'local_email');
 $select->formid = 'choosetemplate';
 $templateselectoutput = html_writer::tag('div', $output->render($select), array('id' => 'iomad_template_selector'));
 
-if (!(iomad::has_capability('block/iomad_company_admin:editusers', $companycontext) or
-      iomad::has_capability('block/iomad_company_admin:editallusers', $companycontext))) {
+if (!(iomad::has_capability('local/report_emails:view', $companycontext))) {
     throw new moodle_exception('nopermissions', 'error', '', 'report on users');
 }
 
