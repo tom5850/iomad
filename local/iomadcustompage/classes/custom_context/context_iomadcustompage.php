@@ -244,7 +244,7 @@ class context_iomadcustompage extends context {
             $DB->execute($sql);
 
             // Deeper pages - one query per depthlevel.
-            $maxdepth = $DB->get_field_sql("SELECT MAX(depth) FROM {iomadcustompages}");
+            $maxdepth = $DB->get_field_sql("SELECT MAX(depth) FROM {local_iomadcustompages}");
             for ($n = 2; $n <= $maxdepth; $n++) {
                 $sql = "INSERT INTO {context_temp} (id, path, depth, locked)
                         SELECT ctx.id, ".$DB->sql_concat('pctx.path', "'/'", 'ctx.id').", pctx.depth+1, ctx.locked

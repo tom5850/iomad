@@ -37,7 +37,7 @@ $page         = optional_param('page', 0, PARAM_INT);
 $perpage      = optional_param('perpage', $CFG->iomad_max_list_users, PARAM_INT);
 // Id of user to tweak mnet ACL (requires $access).
 $acl          = optional_param('acl', '0', PARAM_INT);
-$search      = optional_param('search', '', PARAM_CLEAN);// Search string.
+$search = optional_param('search', '', PARAM_CLEAN); // Search string.
 $departmentid = optional_param('deptid', 0, PARAM_INTEGER);
 $viewchildren = optional_param('viewchildren', true, PARAM_BOOL);
 
@@ -136,20 +136,34 @@ $parentlevel = company::get_company_parentnode($company->id);
 $companydepartment = $parentlevel->id;
 
 // Work out where the user sits in the company department tree.
+require_once($CFG->dirroot . '/local/iomad/lib/report_department_security.php');
+
 if (\iomad::has_capability('block/iomad_company_admin:edit_all_departments', $companycontext)) {
+    // Site admins should have access to all departments in the company
     $userlevels = array($parentlevel->id => $parentlevel->id);
+    // Add all subdepartments for admins so they can select any department
+    $allsubdepartments = company::get_all_subdepartments($parentlevel->id);
+    if (is_array($allsubdepartments)) {
+        $userlevels = $userlevels + $allsubdepartments;
+    }
 } else {
-    $userlevels = $company->get_userlevel($USER);
+    // For non-admin users, use our security filtering function
+    $userlevels = filter_report_departments($company, $USER, 'local/report_users:view');
 }
 
 $userhierarchylevel = key($userlevels);
-if ($departmentid == 0 ) {
+if ($departmentid == 0) {
     $departmentid = $userhierarchylevel;
 }
 
 // Get the company additional optional user parameter names.
 $fieldnames = array();
 $allfields = array();
+if ($category = $DB->get_record_sql("SELECT uic.id, uic.name FROM {user_info_category} uic, {company} c
+                                     WHERE c.id = :companyid
+                                     AND c.profileid=uic.id", array('companyid' => $companyid))) {
+    $params['page'] = 0;
+}
 if ($category = $DB->get_record_sql("SELECT uic.id, uic.name FROM {user_info_category} uic, {company} c
                                      WHERE c.id = :companyid
                                      AND c.profileid=uic.id", array('companyid' => $companyid))) {
@@ -196,7 +210,7 @@ if (!empty($fieldnames)) {
                 ${$fieldname} = $paramarray[${$fieldname}];
             }
         }
-        if (!empty(${$fieldname} && ${$fieldname} != -1) ) {
+        if (!empty(${$fieldname}) ) {
             $idlist[0] = "We found no one";
             $fieldsql = $DB->sql_compare_text('data')." LIKE '%".${$fieldname}."%'
                                                         AND fieldid = $id";
@@ -241,8 +255,8 @@ $mform->set_data(array('departmentid' => $departmentid));
 $mform->set_data($params);
 $mform->get_data();
 
-// Display the tree selector thing.
-echo $output->display_tree_selector($company, $parentlevel, $baseurl, $params, $departmentid, $viewchildren);
+ // Display the tree selector thing.
+echo get_filtered_tree_selector_html($output, $company, $parentlevel, $baseurl, $params, $departmentid, $viewchildren, 'local/report_users:view');
 echo html_writer::start_tag('div', array('class' => 'iomadclear', 'style' => 'padding-top: 5px;'));
 
 // Display the user filter form.
@@ -297,8 +311,7 @@ $departmentsql = " AND d.id IN (" . implode(',', array_keys($showdepartments)) .
 if ($parentslist = $company->get_parent_companies_recursive()) {
     $companysql = " AND u.id NOT IN (
                     SELECT userid FROM {company_users}
-                    WHERE managertype = 1
-                    AND companyid IN (" . implode(',', array_keys($parentslist)) ."))";
+                    WHERE companyid IN (" . implode(',', array_keys($parentslist)) ."))";
 } else {
     $companysql = "";
 }
@@ -350,7 +363,11 @@ $columns[] = 'currentlogin';
 $table->set_sql($selectsql, $fromsql, $wheresql, $sqlparams);
 $countsql = "SELECT count(DISTINCT u.id) FROM $fromsql WHERE $wheresql";
 $table->set_count_sql($countsql, $sqlparams);
-$table->define_baseurl($linkurl);
+// Clean urlparams to avoid duplicate deptid parameters
+if (isset($urlparams['deptid']) && is_array($urlparams['deptid'])) {
+	$urlparams['deptid'] = end($urlparams['deptid']); // Use the last deptid value
+}
+$table->define_baseurl(new moodle_url($linkurl, $urlparams));
 $table->define_columns($columns);
 $table->define_headers($headers);
 $table->out($CFG->iomad_max_list_users, true);

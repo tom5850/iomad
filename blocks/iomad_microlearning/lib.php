@@ -516,17 +516,20 @@ class microlearning {
         $errors = false;
         $starttime = null;
 
-        // If 
+        // If
+//START Thomas		
         if (!empty($scheduletype)) {
             if ($scheduletype == 1) {
                 // We want midnight last night.
-                $starttime = strtotime("today midnight")+ $threadinfo->message_preset + $threadinfo->message_time;
+                $starttime = strtotime("today midnight");
             } else {
-                // We want the next scheduled time.
-                $starttime = self::get_next_scheduled($threadid) + $threadinfo->message_preset + $threadinfo->message_time;
+                // We want the next scheduled time - convert to midnight of that date.
+                $nextscheduled = self::get_next_scheduled($threadid);
+                $starttime = strtotime("midnight", $nextscheduled);
             }
         }
-
+//END
+		
         // Get the thread nuggets.
         $nuggets = $DB->get_records('microlearning_nugget', array('threadid' => $threadid));
         if (empty($threadinfo->halt_until_fulfilled)) {
@@ -534,7 +537,7 @@ class microlearning {
         } else {
             // We want midnight last night.
             $starttime = time() - (time() % 86400);
-            $scheduleinfo = self::get_schedules($threadinfo, $nuggets, $starttime);
+            $scheduleinfo = self::get_schedules($threadinfo, $nuggets, $starttime);	   
         }
 
         // insert the user schedule info.
@@ -850,7 +853,11 @@ class microlearning {
                                                      array('userid' => $userid,
                                                            'section' => $cmidrec->section));
             // If we have everything we need, mark it as completed.
-            if ($requiredcount == $actualcount) {
+
+//START Thomas: original code checks if ALL modules in the section are completed. This does not work with our multi-language courses. Therefore we check only if one module in the section is completed.
+            //if ($requiredcount == $actualcount) {
+			if ($actualcount>=1) {					  
+//END
                 foreach ($nuggets as $nugget) {
                     $found = true;
                     if (empty($threads[$nugget->threadid])) {
@@ -1003,7 +1010,9 @@ class microlearning {
                         $company = new company($scheduleuser->companyid);
                         // Get the nugget link.
                         $nugget->url = new moodle_url($company->get_wwwroot() . '/blocks/iomad_microlearning/land.php', array('nuggetid' => $nugget->id, 'userid' => $user->id, 'accesskey' =>$scheduleuser->accesskey));
-                        // Fire the email.
+                        // Ensure user is enrolled in the course
+                        self::ensure_user_course_enrollment($user, $nugget, $scheduleuser->companyid);
+						// Fire the email.									  				  
                         EmailTemplate::send('microlearning_nugget_scheduled', array('user' => $user, 'company' => $company, 'nugget' => $nugget));
                         $DB->set_field('microlearning_thread_user', 'message_delivered', true, array('id' => $scheduleuser->id));
                     }
@@ -1014,7 +1023,7 @@ class microlearning {
         unset($scheduleusers);
 
         // Get users who need to be sent a reminder email
-        mtrace("getting list of users for first reminder");
+        mtrace("getting list of users for first reminder");	
         if ($reminder1users = $DB->get_records_sql("SELECT mtu.*,mt.companyid FROM {microlearning_thread_user} mtu
                                                    JOIN {microlearning_thread} mt
                                                    ON (mtu.threadid = mt.id)
@@ -1024,22 +1033,24 @@ class microlearning {
                                                    AND mtu.reminder1_delivered = 0
                                                    AND mtu.reminder1_date IS NOT NULL
                                                    AND (
-                                                     mtu.reminder1_date < mtu.due_date
+                                                     mtu.reminder1_date < mtu.due_date 
                                                      OR mtu.due_date = 0
                                                    )
-                                                   AND mtu.reminder1_date < :runtime",
+                                                   AND mtu.reminder1_date <      :runtime",
                                                    array('runtime' => $runtime))) {
             foreach ($reminder1users as $reminder1user) {
-                $reminder1user->reminder1_delivered = true;
+                $reminder1user->reminder1_delivered = true;	
 
                 if ($user = $DB->get_record('user', array('id' => $reminder1user->userid, 'suspended' => 0, 'deleted' => 0))) {
                     // Get the email payload.
                     if ($nugget = $DB->get_record('microlearning_nugget', array('id' => $reminder1user->nuggetid))) {
                         $company = new company($reminder1user->companyid);
                         // Fix the payload.
-                        $nugget->name = format_text($nugget->name);
-                        $nugget->url = new moodle_url($company->get_wwwroot() . '/blocks/iomad_microlearning/land.php', array('nuggetid' => $nugget->id, 'userid' => $user->id, 'accesskey' =>$reminder1user->accesskey));
-                        // Fire the email.
+                        //$nugget->name = format_text($nugget->name); //THOMAS: Does not support user's language. Is not needed here, since it will be filled correctly in the email api.
+						$nugget->url = new moodle_url($company->get_wwwroot() . '/blocks/iomad_microlearning/land.php', array('nuggetid' => $nugget->id, 'userid' => $user->id, 'accesskey' =>$reminder1user->accesskey));
+                        // Ensure user is enrolled in the course
+                        self::ensure_user_course_enrollment($user, $nugget, $reminder1user->companyid);
+						// Fire the email.									  			  
                         EmailTemplate::send('microlearning_nugget_reminder1', array('user' => $user, 'company' => $company, 'nugget' => $nugget));
                     }
                 }
@@ -1059,7 +1070,7 @@ class microlearning {
                                                    AND mtu.reminder2_delivered = 0
                                                    AND mtu.reminder2_date IS NOT NULL
                                                    AND (
-                                                     mtu.reminder2_date < mtu.due_date
+                                                     mtu.reminder2_date < mtu.due_date 
                                                      OR mtu.due_date = 0
                                                    )
                                                    AND mtu.reminder2_date < :runtime",
@@ -1073,9 +1084,11 @@ class microlearning {
                     if ($nugget = $DB->get_record('microlearning_nugget', array('id' => $reminder2user->nuggetid))) {
                         $company = new company($reminder2user->companyid);;
                         // Fix the payload.
-                        $nugget->name = format_text($nugget->name);
-                        $nugget->url = new moodle_url($company->get_wwwroot() . '/blocks/iomad_microlearning/land.php', array('nuggetid' => $nugget->id, 'userid' => $user->id, 'accesskey' =>$reminder2user->accesskey));
-                        // Fire the email.
+                        //$nugget->name = format_text($nugget->name); //THOMAS: Does not support user's language. Is not needed here, since it will be filled correctly in the email api.
+						$nugget->url = new moodle_url($company->get_wwwroot() . '/blocks/iomad_microlearning/land.php', array('nuggetid' => $nugget->id, 'userid' => $user->id, 'accesskey' =>$reminder2user->accesskey));
+                        // Ensure user is enrolled in the course
+                        self::ensure_user_course_enrollment($user, $nugget, $reminder2user->companyid);
+						// Fire the email.										  				  
                         EmailTemplate::send('microlearning_nugget_reminder2', array('user' => $user, 'company' => $company, 'nugget' => $nugget));
                     }
                 }
@@ -1085,4 +1098,92 @@ class microlearning {
         unset($reminder2users);
         mtrace("microlearning cron finished - " . time());
     }
+
+    /**
+     * Ensures a user is enrolled in the course associated with a nugget
+     * 
+     * @param object $user The user object
+     * @param object $nugget The nugget object
+     * @param int $companyid The company ID
+     * @return bool True if enrollment was successful or user was already enrolled
+     */
+    private static function ensure_user_course_enrollment($user, $nugget, $companyid) {
+        global $DB;
+        
+        $courseid = null;
+        
+        // Determine the course ID based on nugget type
+        if (!empty($nugget->cmid)) {
+            // Nugget is linked to a course module
+            if ($coursemodule = $DB->get_record('course_modules', array('id' => $nugget->cmid))) {
+                $courseid = $coursemodule->course;
+            }
+        } else if (!empty($nugget->sectionid)) {
+            // Nugget is linked to a course section
+            if ($section = $DB->get_record('course_sections', array('id' => $nugget->sectionid))) {
+                $courseid = $section->course;
+            }
+        }
+        
+        // If we couldn't determine a course ID, return false
+        if (empty($courseid)) {
+            mtrace("No course found for nugget ID: {$nugget->id}");
+            return false;
+        }
+        
+        // Check if user is already enrolled in the course
+        $context = context_course::instance($courseid);
+        if (is_enrolled($context, $user->id)) {
+            mtrace("User {$user->id} already enrolled in course {$courseid}");
+            return true;
+        }
+        
+        try {
+            // Get the default student role
+            $studentrole = $DB->get_record('role', array('shortname' => 'student'));
+            if (!$studentrole) {
+                mtrace("Student role not found - cannot enroll user {$user->id}");
+                return false;
+            }
+            
+            // Use IOMAD's company_user::enrol method if available
+            if (class_exists('company_user')) {
+                company_user::enrol($user, array($courseid), $companyid);
+            } else {
+                // Fallback to standard Moodle enrollment
+                mtrace("Enrolling user {$user->id} in course {$courseid} via standard enrollment");
+
+                // Get the manual enrollment plugin
+                $enrol = enrol_get_plugin('manual');
+                if (!$enrol) {
+                    mtrace("Manual enrollment plugin not available");
+                    return false;
+                }
+                
+                // Get the manual enrollment instance for this course
+                $instance = $DB->get_record('enrol', array(
+
+
+                    'courseid' => $courseid, 
+                    'enrol' => 'manual'
+                ), '*', IGNORE_MULTIPLE);
+                
+                if (!$instance) {
+                    mtrace("No manual enrollment instance found for course {$courseid}");
+                    return false;
+                }
+                
+                // Enroll the user
+                $enrol->enrol_user($instance, $user->id, $studentrole->id, time());
+            }
+            
+            mtrace("Successfully enrolled user {$user->id} in course {$courseid}");
+            return true;
+            
+        } catch (Exception $e) {
+            mtrace("Error enrolling user {$user->id} in course {$courseid}: " . $e->getMessage());
+            return false;
+        }
+    }
+    
 }

@@ -59,5 +59,9 @@ moodle-plugin-ci.phar
 phpcs.xml
 jsconfig.json
 UPGRADING-CURRENT.md
+# TreeSolution backup files
 *.orig
 *.mod
+# TreeSolution system specific files
+/config.php
+/my/index.php

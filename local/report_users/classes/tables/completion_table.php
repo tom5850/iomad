@@ -151,7 +151,14 @@ class completion_table extends table_sql {
     public function col_finalscore($row) {
         global $CFG, $DB, $USER;
 
-        if ($icourserec = $DB->get_record_sql("SELECT * FROM {iomad_courses} WHERE courseid = :courseid AND hasgrade = 1", array('courseid' => $row->courseid))) {
+        // Check if course has grade enabled - use LEFT JOIN to include unassigned courses
+        $icourserec = $DB->get_record_sql("SELECT COALESCE(ic.hasgrade, 1) as hasgrade
+                                           FROM {course} c
+                                           LEFT JOIN {iomad_courses} ic ON (c.id = ic.courseid)
+                                           WHERE c.id = :courseid",
+                                           array('courseid' => $row->courseid));
+
+        if ($icourserec && $icourserec->hasgrade == 1) {
             if ($this->is_downloading() || empty($USER->editing)) {
                 if (!empty($row->finalscore) && !empty($row->timeenrolled)) {
                     return round($row->finalscore, $CFG->iomad_report_grade_places)."%";

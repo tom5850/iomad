@@ -775,8 +775,8 @@ class company {
                         if ($user = $DB->get_record('user', array('id' => $educator->userid,
                                                                   'deleted' => 0)) ) {
                             if ($DB->record_exists('course', array('id' => $course->id))) {
-                                if ($DB->record_exists('iomad_courses', array('courseid' => $course->id, 'shared' => 1))) {
-                                    // Not created by a company manager.
+                                if (!$own) { //THOMAS 15.10.25 https://github.com/iomad/iomad/issues/2334
+                                    // Not created by a company manager - assign course access role.
                                     company_user::enrol($user, array($course->id), $this->id,
                                                         $companycoursenoneditorrole->id);
                                 } else {

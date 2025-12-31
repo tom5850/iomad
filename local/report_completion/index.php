@@ -124,9 +124,6 @@ if ($courseid) {
 if ($departmentid) {
     $params['deptid'] = $departmentid;
 }
-if ($departmentid) {
-    $params['departmentid'] = $departmentid;
-}
 if ($showsuspended) {
     $params['showsuspended'] = $showsuspended;
 }
@@ -551,14 +548,23 @@ if ($viewchildren && $canseechildren) {
 $companydepartment = $parentlevel->id;
 
 // Work out where the user sits in the company department tree.
+require_once($CFG->dirroot . '/local/iomad/lib/report_department_security.php');
+
 if (\iomad::has_capability('block/iomad_company_admin:edit_all_departments', $companycontext)) {
+    // Site admins should have access to all departments in the company
     $userlevels = array($parentlevel->id => $parentlevel->id);
+    // Add all subdepartments for admins so they can select any department
+    $allsubdepartments = company::get_all_subdepartments($parentlevel->id);
+    if (is_array($allsubdepartments)) {
+        $userlevels = $userlevels + $allsubdepartments;
+    }
 } else {
-    $userlevels = $company->get_userlevel($USER);
+    // For non-admin users, use our security filtering function
+    $userlevels = filter_report_departments($company, $USER, 'local/report_completion:view');
 }
 
 $userhierarchylevel = key($userlevels);
-if ($departmentid == 0 ) {
+if ($departmentid == 0) {
     $departmentid = $userhierarchylevel;
 }
 
@@ -687,7 +693,7 @@ if (empty($courseid)) {
 
         // Display the department selector.
         $selectorparams['showsummary'] = false;
-        echo $output->display_tree_selector($company, $parentlevel, $selecturl, $selectparams, $departmentid, $viewchildren);
+        echo get_filtered_tree_selector_html($output, $company, $parentlevel, $selecturl, $selectparams, $departmentid, $viewchildren, 'local/report_completion:view');
         echo html_writer::start_tag('div', array('class' => 'completion_search_forms', 'style' => 'padding-left: 15px'));
         echo html_writer::start_tag('div', array('class' => 'iomadcoursesearchform'));
         $mform->display();
@@ -700,15 +706,11 @@ if (empty($courseid)) {
 
     // Deal with any course searches.
     $searchparams = array();
-    $companycourses = $company->get_menu_courses(true);
-    if (empty($companycourses)) {
-        $companycourses = [0];
-    }
     if (!empty($coursesearch)) {
-        $coursesearchsql = " AND lit.courseid IN (" . join(',', array_keys($companycourses)) . ") AND " . $DB->sql_like('lit.coursename', ':coursename', false, false);
+        $coursesearchsql = " AND " . $DB->sql_like('lit.coursename', ':coursename', false, false);
         $searchparams['coursename'] = "%" . $coursesearch . "%";
     } else {
-        $coursesearchsql = " AND lit.courseid IN (" . join(',', array_keys($companycourses)) . ") ";
+        $coursesearchsql = "";
     }
 
     // Deal with any custom field searches.
@@ -742,11 +744,16 @@ if (empty($courseid)) {
     }
 
     // Set up the SQL for the table.
-    $selectsql = "lit.courseid AS id, lit.coursename AS coursename, $departmentid AS departmentid, $showsuspended AS showsuspended, lit.companyid AS companyid, ic.licensed AS islicensed";
-    $fromsql = "{local_iomad_track} lit JOIN {iomad_courses} ic ON (lit.courseid = ic.courseid)";
+    $selectsql = "lit.courseid AS id, lit.coursename AS coursename, $departmentid AS departmentid, $showsuspended AS showsuspended, lit.companyid AS companyid, COALESCE(ic.licensed, 0) AS islicensed";
+    $fromsql = "{local_iomad_track} lit
+                LEFT JOIN {iomad_courses} ic ON (lit.courseid = ic.courseid)";
     $sqlparams = array('companyid' => $companyid) + $searchparams;
 
-    $wheresql = "lit.companyid = :companyid $coursesearchsql GROUP BY lit.courseid, lit.coursename, lit.companyid, ic.licensed";
+    $wheresql = "lit.companyid = :companyid
+                 AND lit.userid IN (SELECT userid FROM {company_users} WHERE companyid = :companyid2 AND educator = 0)
+                 $coursesearchsql
+                 GROUP BY lit.courseid, lit.coursename, lit.companyid, COALESCE(ic.licensed, 0)";
+    $sqlparams['companyid2'] = $companyid;
 
     // Set up the headers.
     $courseheaders = [get_string('coursename', 'local_report_completion')];
@@ -917,11 +924,7 @@ if (empty($courseid)) {
     if ($courseid != 1) {
         $coursesql = " AND lit.courseid = :courseid ";
     } else {
-    $companycourses = $company->get_menu_courses(true);
-    if (empty($companycourses)) {
-        $companycourses = [0];
-    }
-        $coursesql = " AND lit.courseid IN (" . join(',', array_keys($companycourses)) . ") ";
+        $coursesql = "";
     }
 
     // Deal with any search dates.
@@ -981,7 +984,7 @@ if (empty($courseid)) {
                 JOIN {local_iomad_track} lit ON (u.id = lit.userid)
                 JOIN {company_users} cu ON (u.id = cu.userid AND lit.userid = cu.userid AND lit.companyid = cu.companyid)
                 JOIN {department} d ON (cu.departmentid = d.id)
-                JOIN {iomad_courses} ic ON (lit.courseid = ic.courseid)";
+                LEFT JOIN {iomad_courses} ic ON (lit.courseid = ic.courseid)";
     $wheresql = $searchinfo->sqlsearch . " AND u.deleted = 0 $suspendedsql $educatorsql $departmentsql $companysql $datesql $coursesql $validsql";
     $sqlparams = $sqlparams + $searchinfo->searchparams;
 
@@ -1169,7 +1172,7 @@ if (empty($courseid)) {
         // Display the search form and department picker.
         if (!empty($companyid)) {
             if (empty($table->is_downloading())) {
-                echo $output->display_tree_selector($company, $parentlevel, $selecturl, $selectparams, $departmentid);
+                echo get_filtered_tree_selector_html($output, $company, $parentlevel, $selecturl, $selectparams, $departmentid, false, 'local/report_completion:view');
 
                 // Set up the filter form.
                 $options = $params;

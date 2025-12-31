@@ -245,7 +245,8 @@ class EmailTemplate {
      *
      **/
     public function subject() {
-        return $this->fill($this->template->subject);
+        $subject = $this->fill($this->template->subject);
+        return $this->apply_multilang_filter($subject, $this->user->lang, false);
     }
 
     /**
@@ -254,7 +255,8 @@ class EmailTemplate {
      *
      **/
     public function body() {
-        return $this->fill($this->template->body);
+        $body = $this->fill($this->template->body);
+        return $this->apply_multilang_filter($body, $this->user->lang, true);
     }
 
     /**
@@ -263,7 +265,8 @@ class EmailTemplate {
      *
      **/
     public function signature() {
-        return $this->fill($this->template->signature);
+        $signature = $this->fill($this->template->signature);
+        return $this->apply_multilang_filter($signature, $this->user->lang, true);
     }
 
     /**
@@ -1021,6 +1024,38 @@ class EmailTemplate {
         }
 
         return $template;
+    }
+
+    /**
+     * Apply multilang filter to text based on user's language preference
+     *
+     * Parameters - $text = text to filter
+     *              $userlang = user's preferred language code
+     *
+     * Returns filtered text with only the user's language content
+     **/
+    private function apply_multilang_filter($text, $userlang, $preservehtml = false) {
+        if (empty($text)) {
+            return $text;
+        }
+
+        $currentlang = current_language();
+
+        if ($currentlang != $userlang) {
+            force_current_language($userlang);
+        }
+
+        if ($preservehtml) {
+            $filtered = format_text($text, FORMAT_HTML, ['context' => context_system::instance(), 'filter' => true]);
+        } else {
+            $filtered = format_string($text, true, ['context' => context_system::instance(), 'filter' => true]);
+        }
+
+        if ($currentlang != $userlang) {
+            force_current_language($currentlang);
+        }
+
+        return $filtered;
     }
 
     /**

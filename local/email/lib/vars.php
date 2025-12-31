@@ -179,19 +179,39 @@ class EmailVars {
      **/
     function CourseURL() {
         global $CFG;
+	//START Thomas: use correct Moodle URL and use hostname of parent	
+		$returnurl = new moodle_url($this->url);
 
         if (empty($CFG->allowthemechangeonurl)) {
-            return $this->course->url;
+            $returnurl = $this->course->url; //FIXED
         } else {
             // Get the company theme.
             if (method_exists($this->company,'get_theme')) {
                 $theme = $this->company->get_theme();
                 $this->course->url->param('theme', $theme);
-                return $this->course->url;
+                $returnurl = $this->course->url;
             } else {
-                return $this->course->url;
+                $returnurl = $this->course->url;
             }
         }
+		
+			// If the current company has a hostname, use it.		
+			$hostname = $this->company->get('hostname');
+			if (!empty($hostname))  {
+				$returnurl->set_host($hostname);				
+			} else {
+			// If not, check if the parent company has a hostname and use it.
+				if ($parentid = $this->company->get_parentid()) {
+					$parent = new company($parentid);
+						$hostname = $parent->get('hostname');
+						if (!empty($hostname)) {
+							$returnurl->set_host($hostname);							
+						}
+				}
+			}
+
+			return $returnurl;		
+	//END	
     }
 
     /**
@@ -200,25 +220,44 @@ class EmailVars {
      * returns text;
      *
      **/
-    function SiteURL() {
-        global $CFG;
+	function SiteURL() {
+		global $CFG;
 
-        // Get the company wwwroot.
-        $wwwroot = $this->company->get_wwwroot();
+		$wwwroot = $this->company->get_wwwroot();
 
-        // Can we add the theme to the URL too?
-        if (empty($CFG->allowthemechangeonurl)) {
-            return $wwwroot;
-        } else {
-            // Get the company theme.
-            if (method_exists($this->company,'get_theme')) {
-                $theme = $this->company->get_theme();
-                return new moodle_url($wwwroot, array('theme' => $theme));
-            } else {
-                return new moodle_url($wwwroot);
-            }
-        }
-    }
+	//START Thomas: use correct Moodle URL and use hostname of parent
+		// Can we add the theme to the URL too?									   
+		if (empty($CFG->allowthemechangeonurl)) {
+			$returnurl = new moodle_url($wwwroot); //FIXED			
+		} else {
+			// Get the company theme.
+			if (method_exists($this->company,'get_theme')) {
+				$theme = $this->company->get_theme();
+				$returnurl = new moodle_url($wwwroot, array('theme' => $theme));
+			} else {
+				$returnurl = new moodle_url($wwwroot);
+			}
+		}
+
+		// If the current company has a hostname, use it.
+		$hostname = $this->company->get('hostname');	
+		if (!empty($hostname))  {
+			$returnurl->set_host($hostname);
+		} else {
+		// If not, check if the parent company has a hostname and use it.		
+			if ($parentid = $this->company->get_parentid()) {
+				$parent = new company($parentid);
+					$hostname = $parent->get('hostname');
+					if (!empty($hostname)) {
+						$returnurl->set_host($hostname);					
+					}
+			}
+		}
+
+		return $returnurl;
+	//END
+	}
+
 
     /**
      * Provide the LinkURL method for templates.
@@ -226,14 +265,30 @@ class EmailVars {
      * returns text;
      *
      **/
-    function LinkURL() {
-        global $CFG;
+		function LinkURL() {
+			global $CFG;
 
-        $returnurl = new moodle_url($this->url);
-        if (!empty($this->company->companyrecord->hostname)) {
-            $returnurl->set_host($this->company->companyrec->hostname);
-        }
+			$returnurl = new moodle_url($this->url);
+	
+	//START Thomas: use correct Moodle URL and use hostname of parent
+			// If the current company has a hostname, use it.		
+			$hostname = $this->company->get('hostname');		
+			if (!empty($hostname))  {
+				$returnurl->set_host($hostname);				
+			} else {				
+			// If not, check if the parent company has a hostname and use it.
+				if ($parentid = $this->company->get_parentid()) {
+					$parent = new company($parentid);
+						$hostname = $parent->get('hostname');
+						if (!empty($hostname)) {
+							$returnurl->set_host($hostname);						
+						}
+				}
+			}
 
-        return $returnurl;
-    }
+			return $returnurl;
+	//END
+		}
+
+
 }

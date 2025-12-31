@@ -218,15 +218,24 @@ if (!empty($departmentid) && !company::check_valid_department($companyid, $depar
 $baseurl = new moodle_url(basename(__FILE__), $params);
 $returnurl = $baseurl;
 
-// Work out where the user sits in the company department tree.
+ // Work out where the user sits in the company department tree.
+require_once($CFG->dirroot . '/local/iomad/lib/report_department_security.php');
+
 if (\iomad::has_capability('block/iomad_company_admin:edit_all_departments', $companycontext)) {
+    // Site admins should have access to all departments in the company
     $userlevels = array($parentlevel->id => $parentlevel->id);
+    // Add all subdepartments for admins so they can select any department
+    $allsubdepartments = company::get_all_subdepartments($parentlevel->id);
+    if (is_array($allsubdepartments)) {
+        $userlevels = $userlevels + $allsubdepartments;
+    }
 } else {
-    $userlevels = $company->get_userlevel($USER);
+    // For non-admin users, use our security filtering function
+    $userlevels = filter_report_departments($company, $USER, 'local/report_user_license_allocations:view');
 }
 
 $userhierarchylevel = key($userlevels);
-if ($departmentid == 0 ) {
+if ($departmentid == 0) {
     $departmentid = $userhierarchylevel;
 }
 
@@ -295,7 +304,7 @@ if (!$table->is_downloading()) {
     if (!empty($companyid)) {
         if (empty($table->is_downloading())) {
             // Display the tree selector thing.
-            echo $output->display_tree_selector($company, $parentlevel, $baseurl, $params, $departmentid);
+            echo get_filtered_tree_selector_html($output, $company, $parentlevel, $baseurl, $params, $departmentid, false, 'local/report_user_license_allocations:view');
             echo html_writer::start_tag('div', array('class' => 'iomadclear controlitems'));
             echo $licenseselectoutput;
             echo $courseselectoutput;

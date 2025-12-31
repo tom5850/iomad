@@ -160,6 +160,7 @@ if (!$showsummary) {
     if ($category = $DB->get_record_sql("SELECT uic.id, uic.name FROM {user_info_category} uic, {company} c
                                          WHERE c.id = :companyid
                                          AND c.profileid=uic.id", array('companyid' => $companyid))) {
+        $params['page'] = 0;
         // Get field names from company category.
         if ($fields = $DB->get_records('user_info_field', array('categoryid' => $category->id))) {
             foreach ($fields as $field) {
@@ -281,14 +282,23 @@ if (!$showsummary && $canseechildren && $viewchildren && $haschildren) {
 }
 
 // Work out where the user sits in the company department tree.
+require_once($CFG->dirroot . '/local/iomad/lib/report_department_security.php');
+
 if (\iomad::has_capability('block/iomad_company_admin:edit_all_departments', $companycontext)) {
+    // Site admins should have access to all departments in the company
     $userlevels = array($parentlevel->id => $parentlevel->id);
+    // Add all subdepartments for admins so they can select any department
+    $allsubdepartments = company::get_all_subdepartments($parentlevel->id);
+    if (is_array($allsubdepartments)) {
+        $userlevels = $userlevels + $allsubdepartments;
+    }
 } else {
-    $userlevels = $company->get_userlevel($USER);
+    // For non-admin users, use our security filtering function
+    $userlevels = filter_report_departments($company, $USER, 'local/report_user_logins:view');
 }
 
 $userhierarchylevel = key($userlevels);
-if ($departmentid == 0 ) {
+if ($departmentid == 0) {
     $departmentid = $userhierarchylevel;
 }
 if (!$showsummary) {
@@ -470,7 +480,7 @@ if (!$table->is_downloading()) {
     echo $output->header();
     $treeparams = $params;
     $treeparams['showsummary'] = false;
-    echo $output->display_tree_selector($realcompany, $parentlevel, $baseurl, $treeparams, $departmentid, $viewchildren);
+    echo get_filtered_tree_selector_html($output, $realcompany, $parentlevel, $baseurl, $treeparams, $departmentid, $viewchildren, 'local/report_user_logins:view');
 
     // Display the search form and department picker.
     if (!$showsummary && !empty($companyid)) {

@@ -221,14 +221,23 @@ $urlparams = $params;
 $baseurl = new moodle_url(basename(__FILE__), $urlparams);
 $returnurl = $baseurl;
 
-// Work out where the user sits in the company department tree.
+ // Work out where the user sits in the company department tree.
+require_once($CFG->dirroot . '/local/iomad/lib/report_department_security.php');
+
 if (\iomad::has_capability('block/iomad_company_admin:edit_all_departments', $companycontext)) {
+    // Site admins should have access to all departments in the company
     $userlevels = array($parentlevel->id => $parentlevel->id);
+    // Add all subdepartments for admins so they can select any department
+    $allsubdepartments = company::get_all_subdepartments($parentlevel->id);
+    if (is_array($allsubdepartments)) {
+        $userlevels = $userlevels + $allsubdepartments;
+    }
 } else {
-    $userlevels = $company->get_userlevel($USER);
+    // For non-admin users, use our security filtering function
+    $userlevels = filter_report_departments($company, $USER, 'local/report_completion_monthly:view');
 }
 $userhierarchylevel = key($userlevels);
-if ($departmentid == 0 ) {
+if ($departmentid == 0) {
     $departmentid = $userhierarchylevel;
 }
 
@@ -247,9 +256,19 @@ if ($courseid == 1) {
 $allcompanycourses = $company->get_menu_courses(true, false, false, false, false);
 $courselistsql = "";
 $coursesearchparams = [];
-if (!empty($allcompanycourses)) {
-    $courselistsql = " AND ic.courseid IN (" . implode(',', array_keys($allcompanycourses)) . ")";
+if ($courseid != 1) {
+    // Specific course requested - include it even if not in allcompanycourses
+    if (!empty($allcompanycourses) && !isset($allcompanycourses[$courseid])) {
+        $courselistsql = " AND (lit.courseid IN (" . implode(',', array_keys($allcompanycourses)) . ") OR lit.courseid = :specificcourseid)";
+        $coursesearchparams['specificcourseid'] = $courseid;
+    } else if (!empty($allcompanycourses)) {
+        $courselistsql = " AND lit.courseid IN (" . implode(',', array_keys($allcompanycourses)) . ")";
+    } else {
+        $courselistsql = " AND lit.courseid = :specificcourseid";
+        $coursesearchparams['specificcourseid'] = $courseid;
+    }
 }
+// When courseid = 1 (all courses), don't restrict by allcompanycourses - show all courses with track records
 
 // Course name search.
 if (!empty($coursesearch)) {
@@ -287,10 +306,12 @@ if (!empty($usedfields)) {
     $courselistsql .= " AND c.id IN (" . join(',', array_keys($fieldcourseids)) . ")";
 }
 
-$courselist = $DB->get_records_sql("SELECT ic.courseid, c.fullname FROM {iomad_courses} ic
-                                    JOIN {course} c ON (ic.courseid = c.id)
-                                    WHERE 1=1 $courselistsql
-                                    ORDER BY c.fullname", $coursesearchparams);
+$courselist = $DB->get_records_sql("SELECT DISTINCT lit.courseid, c.fullname
+                                    FROM {local_iomad_track} lit
+                                    LEFT JOIN {iomad_courses} ic ON (lit.courseid = ic.courseid)
+                                    JOIN {course} c ON (lit.courseid = c.id)
+                                    WHERE lit.companyid = :companyid $courselistsql
+                                    ORDER BY c.fullname", array_merge(['companyid' => $companyid], $coursesearchparams));
 
 
 // Set up the filter forms
@@ -306,7 +327,7 @@ $coursesform = new \local_iomad\forms\course_search_form($baseurl, $params);
 
 
 // Display the tree selector thing.
-echo $output->display_tree_selector($company, $parentlevel, $linkurl, $params, $departmentid);
+echo get_filtered_tree_selector_html($output, $company, $parentlevel, $linkurl, $params, $departmentid, false, 'local/report_completion_monthly:view');
 echo html_writer::start_tag('div', array('class' => 'iomadclear controlitems', 'style' => 'padding-top: 5px;'));
 
 // Display the course selector.
@@ -350,9 +371,9 @@ if ($parentslist = $company->get_parent_companies_recursive()) {
 // Filter courses dependant on the input to the course name search
 $courseids = array_map(fn($i)=> $i->courseid, $courselist);
 if ($courseid != 1) {
-    $coursesql = " AND lit.courseid = :courseid AND lit.courseid IN (" . join(',', array_keys($courseids)) . ") ";
+    $coursesql = " AND lit.courseid = :courseid ";
 } else {
-    $coursesql = " AND lit.courseid IN (" . join(',', array_keys($courseids)) . ") ";
+    $coursesql = " AND lit.courseid IN (" . join(',', $courseids) . ") ";
 }
 
 // Deal with completion times.
@@ -368,9 +389,14 @@ if (!empty($compto)) {
 
 // Set up the initial SQL for the form.
 $selectsql = "DISTINCT lit.id,lit.timecompleted";
-$fromsql = "{user} u JOIN {local_iomad_track} lit ON (u.id = lit.userid) JOIN {company_users} cu ON (u.id = cu.userid AND lit.userid = cu.userid AND lit.companyid = cu.companyid)";
-$wheresql = $searchinfo->sqlsearch . " AND cu.companyid = :companyid AND lit.timecompleted IS NOT NULL $departmentsql $companysql $coursesql $timesql";
-$sqlparams = array('companyid' => $companyid, 'courseid' => $courseid) + $searchinfo->searchparams;
+$fromsql = "{user} u
+            JOIN {local_iomad_track} lit ON (u.id = lit.userid)";
+$wheresql = $searchinfo->sqlsearch . " AND lit.companyid = :companyid AND lit.timecompleted IS NOT NULL
+             AND lit.userid IN (SELECT cu.userid FROM {company_users} cu
+                                JOIN {department} d ON (cu.departmentid = d.id)
+                                WHERE cu.companyid = :companyid2 AND cu.educator = 0 $departmentsql)
+             $companysql $coursesql $timesql";
+$sqlparams = array('companyid' => $companyid, 'companyid2' => $companyid, 'courseid' => $courseid) + $searchinfo->searchparams;
 
 // Get the full list of completions.
 $results = $DB->get_records_sql("SELECT $selectsql FROM $fromsql WHERE $wheresql", $sqlparams);

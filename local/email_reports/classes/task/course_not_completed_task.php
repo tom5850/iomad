@@ -131,45 +131,51 @@ class course_not_completed_task extends \core\task\scheduled_task {
                     continue;
                 }
 
-                // otherwise set the notifyperiod
-                if ($templateinfo->repeatperiod == 0) {
-                    $notifyperiod = "";
-                } else if ($templateinfo->repeatperiod == 99) {
-                    $notifyperiod = "";
-                } else {
-                    $notifytime = strtotime("- 1" . $periods[$templateinfo->repeatperiod], $runtime) - 86400;
-                    $notifyperiod = "AND sent < $notifytime";
+                // Only check for previous emails if repeat is enabled
+                // If repeatperiod is 0 (never) or 99 (always), we can optimize by checking first
+                if (!empty($templateinfo->repeatperiod) && $templateinfo->repeatperiod != 0 && $templateinfo->repeatperiod != 99) {
+                    // For specific periods (1=daily, 2=weekly, 3=fortnightly, 4=monthly)
+                    // Check if user has already received emails during this enrollment
+                    $lastemail = $DB->get_record_sql("SELECT MAX(sent) as lastsent FROM {email}
+                                                       WHERE userid = :userid
+                                                       AND courseid = :courseid
+                                                       AND templatename = :templatename
+                                                       AND modifiedtime > :timestarted",
+                                                       array('userid' => $compuser->userid,
+                                                             'courseid' => $compuser->courseid,
+                                                             'templatename' => 'completion_warn_user',
+                                                             'timestarted' => $compuser->timestarted));
+
+                    if ($lastemail && $lastemail->lastsent) {
+                        // This is a REPEAT email - calculate next allowed send time based on LAST email sent time
+                        $nextallowedtime = strtotime("+ 1" . $periods[$templateinfo->repeatperiod], $lastemail->lastsent);
+
+                        // Compare dates only (ignore time component) since cron runs once per day
+                        // This prevents issues where email was sent at 0:00:30 but cron runs at 0:00:00
+                        $nextalloweddate = strtotime('midnight', $nextallowedtime);
+                        $currentdate = strtotime('midnight', $runtime);
+
+                        // Check if enough time has passed since last email
+                        if ($currentdate < $nextalloweddate) {
+                            continue; // Not enough time has passed yet
+                        }
+                    }
+                    // If no previous email exists, this is the first email - proceed to send
+                } else if ($templateinfo->repeatperiod == 0) {
+                    // repeatperiod = 0 means "never" (send only once)
+                    // Check if email was already sent during this enrollment
+                    if ($DB->record_exists('email', array('userid' => $compuser->userid,
+                                                          'courseid' => $compuser->courseid,
+                                                          'templatename' => 'completion_warn_user'))) {
+                        // Email already sent, skip (though completedstop should prevent this)
+                        continue;
+                    }
                 }
+                // If repeatperiod = 99 (always), no checks needed - proceed to send
             } else {
                 // use the default notify period.
                 $notifytime = $runtime - $compuser->notifyperiod * 86400;
                 $notifyperiod = "AND sent < $notifytime";
-            }
-
-            // Check if we have sent any emails and if they are within the period.
-            if ($DB->count_records('email', array('userid' => $compuser->userid,
-                                                  'courseid' => $compuser->courseid,
-                                                  'templatename' => 'completion_warn_user')) > 0) {
-                if (!empty($notifyperiod)) {
-                    if (!$DB->get_records_sql("SELECT id FROM {email}
-                                              WHERE userid = :userid
-                                              AND courseid = :courseid
-                                              AND templatename = :templatename
-                                              $notifyperiod
-                                              AND id IN (
-                                                 SELECT MAX(id) FROM {email}
-                                                 WHERE userid = :userid2
-                                                 AND courseid = :courseid2
-                                                 AND templatename = :templatename2)",
-                                              array('userid' => $compuser->userid,
-                                                    'courseid' => $compuser->courseid,
-                                                    'templatename' => 'completion_warn_user',
-                                                    'userid2' => $compuser->userid,
-                                                    'courseid2' => $compuser->courseid,
-                                                    'templatename2' => 'completion_warn_user'))) {
-                        continue;
-                    }
-                }
             }
             mtrace("Sending completion warning email to $user->email");
             EmailTemplate::send('completion_warn_user', array('course' => $course, 'user' => $user, 'company' => $companyobj));

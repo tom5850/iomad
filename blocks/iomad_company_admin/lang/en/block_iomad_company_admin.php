@@ -732,7 +732,7 @@ $string['theoptionsbelow'] = '<p><b>NOTE: The options below may only work with t
 $string['timecompletedbeforetimeenrollederror'] = 'The date completed is before the date started!';
 $string['toomanyenrolments'] = 'Too many enrolments ({$a}) to show';
 $string['todashboard'] = 'Return to Dashboard';
-$string['totalenrolments'] = 'Total enrolments';
+
 $string['triedtoallocatetoomanylicenses'] = 'You have tried to allocate licenses for more courses than there are available allocations';
 $string['unenrollincapable'] = '<span id="unenrollwarning">NOTE: If "(existing enrolments)" is shown, you do not have the necessary rights to add/remove this courses. Remove existing user enrolments first.</span>';
 $string['unenrollwarning'] = '<span id="unenrollwarning">WARNING: If "(existing enrolments)" is shown you must tick the box beneath to allow add or remove. If you do this, all users will be unenrolled and ALL THEIR DATA (for that course) IS LOST. This cannot be undone</span>';

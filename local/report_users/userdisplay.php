@@ -446,11 +446,8 @@ if ($validonly) {
 $companysql = " AND lit.companyid = :mycompanyid";
 $sqlparams['mycompanyid'] = $companyid;
 
-$companycourses = $company->get_menu_courses(true);
-if (empty($companycourses)) {
-    $companycourses = [0];
-}
-$wheresql = " lit.userid = :userid $companysql AND lit.courseid IN (" . join(',', array_keys($companycourses)) .") $validsql";
+// Don't restrict by companycourses - show all courses with track records for this user
+$wheresql = " lit.userid = :userid $companysql $validsql";
 
 // Set up the headers for the form.
 $headers = array(get_string('course', 'local_report_completion'),

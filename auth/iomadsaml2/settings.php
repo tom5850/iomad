@@ -437,11 +437,13 @@ urn:mace:dir:attribute-def:mail *</pre>"]),
         50,
         3));
 
+    // Display locking / mapping of profile fields.
+    // Use custom function that supports company-specific postfix for all Moodle versions.
     if (moodle_major_version() < '3.3') {
-        auth_iomadsaml2_display_auth_lock_options($settings, $authplugin->authtype, $authplugin->userfields, $help, true, true,
+        display_auth_lock_options($settings, $authplugin->authtype, $authplugin->userfields, $help, true, true,
             $authplugin->get_custom_user_profile_fields());
     } else {
-        display_auth_lock_options($settings, $authplugin->authtype, $authplugin->userfields, $help, true, true,
+        auth_iomadsaml2_display_auth_lock_options($settings, $authplugin->authtype, $authplugin->userfields, $help, true, true,
             $authplugin->get_custom_user_profile_fields());
     }
 
