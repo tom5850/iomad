@@ -40,7 +40,19 @@ $cancelled = optional_param('cancel', null, PARAM_CLEAN);
 $due         = optional_param_array('due', [], PARAM_INT);
 
 if (!empty($due)) {
-    $duedate = strtotime($due['year'] . '-' . $due['month'] . '-' . $due['day'] . ' ' . $due['hour'] . ':' . $due['minute']);
+	// Compile date string
+	$dueDateString = sprintf('%04d-%02d-%02d %02d:%02d', 
+		$due['year'], 
+		$due['month'], 
+		$due['day'], 
+		$due['hour'], 
+		$due['minute']);
+	// Query user time zone
+	$userTimezone = \core_date::get_user_timezone_object();
+	// Create DateTime object with user time zone
+	$dateTime = new \DateTime($dueDateString, $userTimezone);
+	// Get UNIX timestamp
+	$duedate = $dateTime->getTimestamp();
 } else {
     $duedate = 0;
 }
@@ -105,9 +117,6 @@ $PAGE->requires->jquery();
 // Javascript for fancy select.
 // Parameter is name of proper select form element.
 $PAGE->requires->js_call_amd('block_iomad_company_admin/department_select', 'init', array('deptid', '', $userdepartment));
-
-// Log this page view.
-block_iomad_company_admin\event\dashboard_page_viewed::create_from_url($PAGE->url->out())->trigger();
 
 // get output renderer
 $output = $PAGE->get_renderer('block_iomad_company_admin');
@@ -207,14 +216,7 @@ if (empty($iid)) {
                     $usercheck->{$columns[$key]} = '';
                 }
             }
-            if (!$DB->get_records_sql("SELECT * FROM {user} u
-                                       JOIN {company_users} cu
-                                       ON (u.id = cu.userid)
-                                       WHERE u.username = :username
-                                       AND cu.companyid = :companyid",
-                                      ['username' =>  $usercheck->username,
-                                       'companyid' => $companyid]) &&
-                $optype != 3) {
+            if (!$DB->get_record('user', array('username' =>  $usercheck->username)) && $optype != 3) {
                 $newusercount++;
             } else if (($optype == 2 || $optype ==3) && isset($usercheck->suspended)
                        && $usercheck->suspended == 0
@@ -325,7 +327,7 @@ if (!empty($cancelled)) {
 
         $allowedauths   = uu_allowed_auths();
         $allowedauths   = array_keys($allowedauths);
-        $availableauths = \core_component::get_plugin_list('auth');
+        $availableauths = get_plugin_list('auth');
         $availableauths = array_keys($availableauths);
 
         // We use only manual enrol plugin here, if it is disabled no enrol is done.
@@ -347,13 +349,6 @@ if (!empty($cancelled)) {
         // Init upload progress tracker.
         $upt = new uu_progress_tracker();
         $upt->init(); // Start table.
-
-        // Get a array of the profile fields which are the type datetime
-        $datetime = $DB->get_records('user_info_field', ['categoryid' => $companyid, 'datatype' => 'datetime'], '', 'shortname');
-        $datetimearray = [];
-        foreach ($datetime as $dt) {
-            array_push($datetimearray, 'profile_field_'.$dt->shortname);
-        }
 
         while ($line = $cir->next()) {
             $upt->flush();
@@ -466,16 +461,7 @@ if (!empty($cancelled)) {
                 continue;
             }
 
-            if ($existinguser = $DB->get_record_sql("SELECT DISTINCT u.*
-                                                     FROM {user} u
-                                                     JOIN {company_users} cu
-                                                     ON (u.id = cu.userid)
-                                                     WHERE u.username = :username
-                                                     AND u.mnethostid = :mnethostid
-                                                     AND cu.companyid = :companyid",
-                                                    ['username' => $user->username,
-                                                     'mnethostid' => $user->mnethostid,
-                                                     'companyid' => $companyid])) {
+            if ($existinguser = $DB->get_record('user', array('username' => $user->username, 'mnethostid' => $user->mnethostid))) {
                 $upt->track('id', $existinguser->id, 'normal', false);
             }
 
@@ -499,49 +485,28 @@ if (!empty($cancelled)) {
                     $user->$field = process_template($formdata->$field, $user);
                 }
             }
-            $error = false;
             foreach ($prffields as $field) {
-                if (isset($user->$field) && is_string($user->$field)) {
-                    if (in_array($field, $datetimearray)) {
-                        if (preg_match('/(?P<day>\d{2})-(?P<month>[a-z]{3})-(?P<year>\d{4})/', strtolower($user->$field), $datearray)) {
-                            $month = $montharray[$datearray[2]];
-                            $unixtime = mktime (0, 0, 0, $month, $datearray['day'], $datearray['year']);
-                            $user->$field = $unixtime;
-                        } else {
-                            $upt->track('status', get_string('invalid_date_format', 'block_iomad_company_admin', $field), 'error');
-                            $line[] = get_string('invalid_date_format', 'block_iomad_company_admin', $field);
-                            $errornum++;
-                            $userserrors++;
-                            $erroredusers[] = $line;
-                            $error = true;
-                        }
+                if (isset($user->$field)) {
+                    if (preg_match('/(?P<day>\d{2})-(?P<month>[a-zA-Z]{3})-(?P<year>\d{4})/', $user->$field, $datearray)) {
+                        $month = $montharray[$datearray[2]];
+                        $unixtime = mktime (0, 0, 0, $month, $datearray['day'], $datearray['year']);
+                        $user->$field = $unixtime;
                     }
                     continue;
                 }
-                if (isset($formdata->$field) && isset($user->field) && is_string($user->$field)) {
+                if (isset($formdata->$field)) {
                     // Process templates.
                     // Check if is in a dd-Mon-yyy format.
-                    if (in_array($field, $datetimearray)) {
-                        if (preg_match('/(?P<day>\d{2})-(?P<month>[a-z]{3})-(?P<year>\d{4})/', strtolower($formdata->$field), $datearray)) {
-                            $month = $montharray[$datearray[2]];
-                            $unixtime = mktime (0, 0, 0, $month, $datearray['day'], $datearray['year']);
-                            $user->$field = $unixtime;
-                        } else {
-                            $upt->track('status', get_string('invalid_date_format', 'block_iomad_company_admin', $field), 'error');
-                            $line[] = get_string('invalid_date_format', 'block_iomad_company_admin', $field);
-                            $errornum++;
-                            $userserrors++;
-                            $erroredusers[] = $line;
-                            $error = true;
-                        }
+                    if (preg_match('/(?P<day>\d{2})-(?P<month>[a-zA-Z]{3})-(?P<year>\d{4})/', $formdata->$field, $datearray)) {
+                        $month = $montharray[$datearray[2]];
+                        $unixtime = mktime (0, 0, 0, $month, $datearray['day'], $datearray['year']);
+                        $user->$field = $unixtime;
                     } else {
                         $user->$field = process_template($formdata->$field, $user);
                     }
                 }
             }
-            if ($error) {
-                continue;
-            }
+
             // Delete user.
             if (!empty($user->deleted)) {
                 if (!$allowdeletes) {
@@ -560,7 +525,7 @@ if (!empty($cancelled)) {
                         $deleteerrors++;
                         continue;
                     }
-                    if (company_user::delete($existinguser->id, $companyid)) {
+                    if (delete_user($existinguser)) {
                         $upt->track('status', $struserdeleted);
                         $deletes++;
                     } else {
@@ -704,16 +669,9 @@ if (!empty($cancelled)) {
                                 // Missing == non-empty only!
                                 continue;
                             }
-                            if (isset($user->$column) && $existinguser->$column !== $user->$column) {
+                            if ($existinguser->$column !== $user->$column) {
                                 if ($column == 'email') {
-                                    if ($DB->record_exists_sql("SELECT DISTINCT u.id
-                                                                FROM {user} u
-                                                                JOIN {company_users} cu
-                                                                ON (u.id = cu.userid)
-                                                                WHERE u.email = :email
-                                                                AND cu.companyid = :companyid",
-                                                               ['email' => $user->email,
-                                                                'companyid' => $companyid])) {
+                                    if ($DB->record_exists('user', array('email' => $user->email))) {
                                         if ($noemailduplicates) {
                                             $upt->track('email', $stremailduplicate, 'error');
                                             $upt->track('status', $strusernotupdated, 'error');
@@ -833,7 +791,7 @@ if (!empty($cancelled)) {
                     profile_save_data($existinguser);
 
                     \core\event\user_updated::create_from_userid($existinguser->id)->trigger();
-
+     
                     // Is the company department valid?
                     if ($passeddepartment && !empty($existinguser->department)) {
                         if (!$department = $DB->get_record('department', array('company' => $company->id,
@@ -913,14 +871,7 @@ if (!empty($cancelled)) {
                     }
                 }
 
-                if ($DB->record_exists_sql("SELECT DISTINCT u.id
-                                            FROM {user} u
-                                            JOIN {company_users} cu
-                                            ON (u.id = cu.userid)
-                                            WHERE u.email = :email
-                                            AND cu.companyid = :companyid",
-                                           ['email' => $user->email,
-                                            'companyid' => $companyid])) {
+                if ($DB->record_exists('user', array('email' => $user->email))) {
                     if ($noemailduplicates) {
                         $upt->track('email', $stremailduplicate, 'error');
                         $upt->track('status', $strusernotaddederror, 'error');
@@ -1124,7 +1075,7 @@ if (!empty($cancelled)) {
                     // Do we have a department passed?
                     if (preg_match('/^department\d+$/', $column)) {
                         $i = substr($column, 10);
-
+    
                         if (empty($user->{'department'.$i})) {
                             continue;
                         }
@@ -1149,21 +1100,21 @@ if (!empty($cancelled)) {
                             $erroredusers[] = $line;
                             continue;
                         }
-
+    
                         // Since we got a valid department, remove the user from any default one.  Typically top-level.
                         if ($department->id != $defaultdepartmentid &&
                             !empty($defaultdepartmentid)) {
-
+    
                             // Remove the user from the default department.
                             $DB->delete_records('company_users', array('userid' => $user->id, 'companyid' => $company->id, 'departmentid' => $defaultdepartmentid));
-
+    
                             // Only want to do this once.
                             $defaultdepartmentid = 0;
                         } else {
                             // Default is the first we were passed.  No longer required.
                             $defaultdepartmentid = 0;
                         }
-
+    
                         // Add the user to this department.
                         $company->assign_user_to_company($user->id, $department->id);
                     }
@@ -1305,7 +1256,7 @@ echo $output->header();
 
 // Print the form.
 $cir->init();
-$availableauths = \core_component::get_plugin_list('auth');
+$availableauths = get_plugin_list('auth');
 $availableauths = array_keys($availableauths);
 $contents = array();
 while ($fields = $cir->next()) {
@@ -1338,20 +1289,8 @@ while ($fields = $cir->next()) {
         }
     }
 
-    $usernameexist = $DB->record_exists_sql("SELECT DISTINCT u.id FROM {user} u
-                                             JOIN {company_users} cu
-                                             ON (u.id = cu.userid)
-                                             WHERE u.username = :username
-                                             AND cu.companyid = :companyid",
-                                            ['username' => $rowcols['username'],
-                                             'companyid' => $companyid]);
-    $emailexist    = $DB->record_exists_sql("SELECT DISTINCT u.id FROM {user} u
-                                             JOIN {company_users} cu
-                                             ON (u.id = cu.userid)
-                                             WHERE u.email = :email
-                                             AND cu.companyid = :companyid",
-                                            ['email' => $rowcols['email'],
-                                             'companyid' => $companyid]);
+    $usernameexist = $DB->record_exists('user', array('username' => $rowcols['username']));
+    $emailexist    = $DB->record_exists('user', array('email' => $rowcols['email']));
     $cleanusername = clean_param($rowcols['username'], PARAM_USERNAME);
     $validusername = strcmp($rowcols['username'], $cleanusername);
     $validemail = validate_email($rowcols['email']);
@@ -1533,7 +1472,7 @@ echo html_writer::tag('div', html_writer::table($table), array('class' => 'flexi
 
 if ($haserror) {
     echo $output->container(get_string('useruploadtype', 'moodle', $choices[$uploadtype]), 'block_iomad_company_admin');
-    echo $output->container(get_string('uploadinvalidpreprocessedcount', 'block_iomad_company_admin', $countcontent), 'block_iomad_company_admin');
+    echo $output->container(get_string('uploadinvalidpreprocessedcount', 'moodle', $countcontent), 'block_iomad_company_admin');
     echo $output->container(get_string('invalidusername', 'moodle'), 'block_iomad_company_admin');
     echo $output->container(get_string('uploadfilecontainerror', 'block_iomad_company_admin'), 'block_iomad_company_admin');
 } else if (empty($contents)) {

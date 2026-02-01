@@ -161,14 +161,6 @@ class user_edit_form extends \moodleform {
         $mform->addHelpButton('due', 'senddate', 'block_iomad_company_admin');
 
 
-        // Language selection.
-        $mform->addElement('select', 'lang', get_string('preferredlanguage'), get_string_manager()->get_list_of_translations());
-        $companydefaults = $this->company->get_user_defaults();
-        if (!empty($companydefaults->lang)) {
-            $mform->setDefault('lang', $companydefaults->lang);
-        }
-
-
         // Deal with company optional fields.
         $mform->addElement('header', 'category_id', get_string('advanced'));
         $mform->addElement('static', 'departmenttext', get_string('department', 'block_iomad_company_admin'));
