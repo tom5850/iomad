@@ -26,6 +26,13 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/mod/trainingevent/lib.php');
 
+/**
+ * Event observer for trainingevent activity plugin.
+ *
+ * @package    mod_trainingevent
+ * @copyright  2022 Derick Turner
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class mod_trainingevent_observer {
 
     /**
@@ -80,6 +87,17 @@ class mod_trainingevent_observer {
      */
     public static function course_module_completion_updated($event) {
         trainingevent_course_module_completion_updated($event);
+        return true;
+    }
+
+    /**
+     * Triggered via core::user_enrolment_deleted event.
+     *
+     * @param \core\event\user_enrolment_deleted $event
+     * @return bool true on success.
+     */
+    public static function user_enrolment_deleted($event) {
+        trainingevent_user_enrolment_deleted($event);
         return true;
     }
 }
