@@ -155,7 +155,7 @@ function local_iomad_track_download_certs($companyid = 0, $courses = [], $users 
                                                            'filearea' => 'issue',
                                                            'itemid' => $comprecord->id])) {
                         if ($userrec = $DB->get_record('user', ['id' => $comprecord->userid])) {
-                            $savefilename = $comprecord->coursename . "/" . $userrec->firstname . "_" . $userrec->lastname . "_" . $userrec->id . "/" . $comprecord->id . "_" . $filerec->filename;
+                            $savefilename = format_string($comprecord->coursename) . "/" . $userrec->firstname . "_" . $userrec->lastname . "_" . $userrec->id . "/" . $comprecord->id . "_" . $filerec->filename;
                             $first = substr($filerec->contenthash, 0, 2);
                             $second = substr($filerec->contenthash, 2, 2);
                             $filepath = $CFG->dataroot . "/filedir/$first/$second/" . $filerec->contenthash;

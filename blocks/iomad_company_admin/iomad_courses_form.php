@@ -368,7 +368,7 @@ if (!empty($companyid)) {
                           WHERE companyid = :companyid)
                          OR ic.shared = 1) ";
         $autoselect = ", cca.autoenrol AS autoenrol, cca.mandatory AS mandatory";
-        $autofrom = " LEFT JOIN {company_course_options} cca ON (ic.courseid = cca.courseid AND cca.companyid = " . $companyid . ")";
+        $autofrom = " LEFT JOIN {company_course_autoenrol} cca ON (ic.courseid = cca.courseid AND cca.companyid = " . $companyid . ")";
     }
 }
 

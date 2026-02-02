@@ -763,7 +763,7 @@ class current_user_course_selector extends company_course_selector_base {
         global $DB;
 
         if ($search) {
-            $groupname = get_string('usercoursesmatching', 'block_iomad_company_admin', $search);
+            $groupname = get_string('coursesmatching', 'block_iomad_company_admin', $search);
         } else {
             $groupname = get_string('usercourses', 'block_iomad_company_admin');
         }
@@ -789,9 +789,8 @@ class current_user_course_selector extends company_course_selector_base {
             if (empty($search)) {
                 return array($groupname => $coursearray);
             } else {
-                // Got to do the search thing.
                 foreach ($coursearray as $courseid => $coursedata) {
-                    if (!strpos($search, $coursedata->fullname)) {
+                    if (stripos($coursedata->fullname, $search) === false) {
                         unset($coursearray[$courseid]);
                     }
                 }
