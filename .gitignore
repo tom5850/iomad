@@ -61,7 +61,15 @@ jsconfig.json
 UPGRADING-CURRENT.md
 # TreeSolution backup files
 *.orig
+*.orig*
 *.mod
+*.mod*
+*.old
+*.old*
+*.md
+*.work
+*.works
 # TreeSolution system specific files
 /config.php
 /my/index.php
+.gitignore
