@@ -72,22 +72,15 @@ if (iomad::has_capability('block/iomad_company_admin:edit_all_departments',$comp
 
 if ($format) {
     $fields = array('id'        => 'id',
+                    'suspended' => 'suspended',
                     'username'  => 'username',
                     'email'     => 'email',
                     'firstname' => 'firstname',
                     'lastname'  => 'lastname',
-                    'idnumber'  => 'idnumber',
                     'institution' => 'institution',
                     'department' => 'department',
                     'phone1'    => 'phone1',
                     'phone2'    => 'phone2',
-                    'city'      => 'city',
-                    'url'       => 'url',
-                    'icq'       => 'icq',
-                    'skype'     => 'skype',
-                    'aim'       => 'aim',
-                    'yahoo'     => 'yahoo',
-                    'msn'       => 'msn',
                     'country'   => 'country');
 
     // Get company category.
