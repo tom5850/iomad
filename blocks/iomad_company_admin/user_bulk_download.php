@@ -72,26 +72,18 @@ if (iomad::has_capability('block/iomad_company_admin:edit_all_departments', $com
 
 // Are we downloading?
 if ($format) {
-    $fields = [
-        'id' => 'id',
-        'username' => 'username',
-        'email' => 'email',
-        'firstname' => 'firstname',
-        'lastname' => 'lastname',
-        'idnumber' => 'idnumber',
-        'institution' => 'institution',
-        'department' => 'department',
-        'phone1' => 'phone1',
-        'phone2' => 'phone2',
-        'city' => 'city',
-        'url' => 'url',
-        'icq' => 'icq',
-        'skype' => 'skype',
-        'aim' => 'aim',
-        'yahoo' => 'yahoo',
-        'msn' => 'msn',
-        'country' => 'country',
-    ];
+    $fields = array('id'        => 'id',
+                    'suspended' => 'suspended',
+                    'username'  => 'username',
+                    'email'     => 'email',
+                    'firstname' => 'firstname',
+                    'lastname'  => 'lastname',
+                    'institution' => 'institution',
+                    'department' => 'department',
+                    'phone1'    => 'phone1',
+                    'phone2'    => 'phone2',
+					'city' => 'city',					
+                    'country'   => 'country');
 
     // Get company category.
     if ($category = $DB->get_record_sql(
