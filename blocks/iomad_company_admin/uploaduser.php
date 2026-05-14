@@ -918,19 +918,6 @@ if (!empty($cancelled)) {
 
                     user_updated::create_from_userid($existinguser->id)->trigger();
 
-<<<<<<< HEAD
-                    // Is the company department valid?
-                    if ($passeddepartment && !empty($existinguser->department)) {
-                        if (!$department = $DB->get_record('department', ['company' => $company->id,
-                                                                          'shortname' => $existinguser->department])) {
-                            $upt->track('department', get_string('invaliddepartment', 'block_iomad_company_admin'), 'error');
-                            $upt->track('status', $strusernotaddederror, 'error');
-                            $line[] = get_string('invaliddepartment', 'block_iomad_company_admin');
-                            $errornum++;
-                            $userserrors++;
-                            $erroredusers[] = $line;
-                            continue;
-=======
                     // For existing users with updatetype=1 (override with file) or updatetype=2 (override with file and defaults),
                     // remove existing department assignments (only ones the current admin can manage).
                     if ($updatetype == 1 || $updatetype == 2) {
@@ -938,7 +925,6 @@ if (!empty($cancelled)) {
                         $hasdepartmentsinfile = false;
                         if (!empty($user->department)) {
                             $hasdepartmentsinfile = true;
->>>>>>> f6b168fa004 (Fix user upload issues (#2600 + #2338))
                         }
                         if (!$hasdepartmentsinfile) {
                             foreach ($columns as $column) {
@@ -949,15 +935,6 @@ if (!empty($cancelled)) {
                             }
                         }
 
-<<<<<<< HEAD
-                        if ($userdep = $DB->get_record('company_users', ['userid' => $existinguser->id,
-                                                                         'companyid' => $company->id])) {
-                            $userdep->departmentid = $department->id;
-                            $DB->update_record('company_users', $userdep);
-                        } else {
-                            // Add the user to the company.
-                            $company->assign_user_to_company($existinguser->id, $department->id);
-=======
                         // Only remove existing departments if we're actually providing new ones in the file.
                         if ($hasdepartmentsinfile) {
                             // Get all current department assignments for this user.
@@ -1021,10 +998,10 @@ if (!empty($cancelled)) {
 
                             // Set the default department ID for numbered department processing.
                             $defaultdepartmentid = $department->id;
->>>>>>> f6b168fa004 (Fix user upload issues (#2600 + #2338))
                         }
                     }
                 }
+
             } else {
                 // Save the user to the database.
                 $user->confirmed = 1;
@@ -1311,32 +1288,6 @@ if (!empty($cancelled)) {
                 if (preg_match('/^department\d+$/', $column)) {
                     $i = substr($column, 10);
 
-<<<<<<< HEAD
-                        if (empty($user->{'department'.$i})) {
-                            continue;
-                        }
-                        $shortname = $user->{'department'.$i};
-                        if (!$department = $DB->get_record('department', ['company' => $company->id,
-                                                                          'shortname' => $shortname])) {
-                            $upt->track('department'.$i, get_string('invaliddepartment', 'block_iomad_company_admin'), 'error');
-                            $upt->track('status', $strusernotaddederror, 'error');
-                            $line[] = get_string('invaliddepartment', 'block_iomad_company_admin');
-                            $errornum++;
-                            $userserrors++;
-                            $erroredusers[] = $line;
-                            continue;
-                        }
-                        // Make sure the user can manage this department.
-                        if (!company::can_manage_department($department->id)) {
-                            $upt->track('department'.$i, get_string('invaliddepartment', 'block_iomad_company_admin'), 'error');
-                            $upt->track('status', $strusernotaddederror, 'error');
-                            $line[] = get_string('invaliddepartment', 'block_iomad_company_admin');
-                            $errornum++;
-                            $userserrors++;
-                            $erroredusers[] = $line;
-                            continue;
-                        }
-=======
                     if (empty($user->{'department'.$i})) {
                         continue;
                     }
@@ -1351,7 +1302,6 @@ if (!empty($cancelled)) {
                         $upt->track('department', get_string('invaliddepartment', 'block_iomad_company_admin'), 'error');
                         continue;
                     }
->>>>>>> f6b168fa004 (Fix user upload issues (#2600 + #2338))
 
                     // Add the user to this department.
                     // For updatetype=0 (no changes): Adds to new department, keeps existing ones
@@ -1359,21 +1309,11 @@ if (!empty($cancelled)) {
                     $company->assign_user_to_company($user->id, $department->id);
                     $departmentadded = true;
 
-<<<<<<< HEAD
-                            // Remove the user from the default department.
-                            $DB->delete_records('company_users', ['userid' => $user->id,
-                                                                  'companyid' => $company->id,
-                                                                  'departmentid' => $defaultdepartmentid]);
-
-                            // Only want to do this once.
-                            $defaultdepartmentid = 0;
-=======
                     // Track successful assignment with old department context if applicable.
                     if (!$shownolddepts && !empty($olddepartmentnames)) {
                         // Show what the user was previously assigned to.
                         if (count($olddepartmentnames) > 1) {
                             $upt->track('department', get_string('blockmultiple', 'admin') . ' --> ' . $shortname);
->>>>>>> f6b168fa004 (Fix user upload issues (#2600 + #2338))
                         } else {
                             $upt->track('department', $olddepartmentnames[0] . ' --> ' . $shortname);
                         }
@@ -1390,6 +1330,8 @@ if (!empty($cancelled)) {
                 $upt->track('status', $struserupdated);
                 $usersupdated++;
             }
+
+
 
             // Enrol user into courses that were selected on the form.
             if (!empty($formdata->currentcourses)) {
