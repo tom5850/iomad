@@ -157,7 +157,7 @@ class user_edit_form extends moodleform {
         $mform->addRule('email', $strrequired, 'required', null, 'client');
         $mform->setType('email', PARAM_EMAIL);
         if (!empty($CFG->iomad_allow_username)) {
-            $mform->addElement('text', 'username', get_string('username'), 'size="20"');
+           $mform->addElement('text', 'username', get_string('username'), 'size="20"');
             $mform->addHelpButton('username', 'username', 'auth');
             $mform->setType('username', PARAM_RAW);
             $mform->disabledif('username', 'use_email_as_username', 'eq', 1);
@@ -196,6 +196,15 @@ class user_edit_form extends moodleform {
         $mform->addElement('date_time_selector', 'due', get_string('senddate', 'block_iomad_company_admin'));
         $mform->disabledIf('due', 'sendnewpasswordemails', 'eq', '0');
         $mform->addHelpButton('due', 'senddate', 'block_iomad_company_admin');
+
+        //START Thomas
+		// Language selection.
+        $mform->addElement('select', 'lang', get_string('preferredlanguage'), get_string_manager()->get_list_of_translations());
+        $companydefaults = $this->company->get_user_defaults();
+        if (!empty($companydefaults->lang)) {
+            $mform->setDefault('lang', $companydefaults->lang);
+        }
+		//END
 
         // Deal with company optional fields.
         $mform->addElement('header', 'category_id', get_string('advanced'));
