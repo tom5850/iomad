@@ -34,9 +34,12 @@ use block_iomad_microlearning\event\{
     thread_updated,
     thread_schedule_updated,
 };
-use company;			
+use company;
+use company_user;
+use context_course;
 use context_system;
-use EmailTemplate;				  
+use EmailTemplate;
+use Exception;
 use html_writer;
 use moodle_url;
 
