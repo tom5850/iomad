@@ -1397,6 +1397,8 @@ class microlearning {
                                 'userid' => $user->id,
                                 'accesskey' => $scheduleuser->accesskey,
                             ]);
+                        // Ensure user is enrolled in the course
+                        self::ensure_user_course_enrollment($user, $nugget, $scheduleuser->companyid);
 
                         // Fire the email.
                         EmailTemplate::send('microlearning_nugget_scheduled', ['user' => $user,
@@ -1452,6 +1454,8 @@ class microlearning {
                             'userid' => $user->id,
                             'accesskey' => $reminder1user->accesskey,
                         ]);
+                        // Ensure user is enrolled in the course
+                        self::ensure_user_course_enrollment($user, $nugget, $reminder1user->companyid);
 
                         // Fire the email.
                         EmailTemplate::send('microlearning_nugget_reminder1', ['user' => $user,
@@ -1508,6 +1512,8 @@ class microlearning {
                                 'accesskey' => $reminder2user->accesskey,
                             ]
                         );
+                        // Ensure user is enrolled in the course
+                        self::ensure_user_course_enrollment($user, $nugget, $reminder2user->companyid);
 
                         // Fire the email.
                         EmailTemplate::send('microlearning_nugget_reminder2', ['user' => $user,
@@ -1520,5 +1526,135 @@ class microlearning {
         }
         unset($reminder2users);
         mtrace("microlearning cron finished - " . time());
+    }
+
+    /**
+     * Ensures a user is enrolled in the course associated with a nugget
+     * 
+     * @param object $user The user object
+     * @param object $nugget The nugget object
+     * @param int $companyid The company ID
+     * @return bool True if enrollment was successful or user was already enrolled
+     */
+    private static function ensure_user_course_enrollment($user, $nugget, $companyid) {
+        global $DB, $SESSION;
+
+        $courseid = null;
+
+        // Determine the course ID based on nugget type
+        if (!empty($nugget->cmid)) {
+            // Nugget is linked to a course module
+            if ($coursemodule = $DB->get_record('course_modules', array('id' => $nugget->cmid))) {
+                $courseid = $coursemodule->course;
+            }
+        } else if (!empty($nugget->sectionid)) {
+            // Nugget is linked to a course section
+            if ($section = $DB->get_record('course_sections', array('id' => $nugget->sectionid))) {
+                $courseid = $section->course;
+            }
+        }
+
+        // If we couldn't determine a course ID, return false
+        if (empty($courseid)) {
+            mtrace("No course found for nugget ID: {$nugget->id}");
+            return false;
+        }
+
+        // Save the original session company and set it to the target company
+        // This ensures that any events triggered during enrollment will have the correct companyid
+        $original_session_company = isset($SESSION->currenteditingcompany) ? $SESSION->currenteditingcompany : null;
+        $SESSION->currenteditingcompany = $companyid;
+
+        try {
+            // Check if user is already enrolled in the course
+            $context = context_course::instance($courseid);
+            if (is_enrolled($context, $user->id)) {
+                mtrace("User {$user->id} already enrolled in course {$courseid}");
+            }
+            // Get the default student role
+            $studentrole = $DB->get_record('role', array('shortname' => 'student'));
+            if (!$studentrole) {
+                mtrace("Student role not found - cannot enroll user {$user->id}");
+
+                // Restore the original session state
+                if ($original_session_company !== null) {
+                    $SESSION->currenteditingcompany = $original_session_company;
+                } else {
+                    unset($SESSION->currenteditingcompany);
+                }
+
+                return false;
+            }
+
+            // Use IOMAD's company_user::enrol method if available
+            if (class_exists('company_user')) {
+                company_user::enrol($user, array($courseid), $companyid);
+            } else {
+                // Fallback to standard Moodle enrollment
+                mtrace("Enrolling user {$user->id} in course {$courseid} via standard enrollment");
+
+                // Get the manual enrollment plugin
+                $enrol = enrol_get_plugin('manual');
+                if (!$enrol) {
+                    mtrace("Manual enrollment plugin not available");
+
+                    // Restore the original session state
+                    if ($original_session_company !== null) {
+                        $SESSION->currenteditingcompany = $original_session_company;
+                    } else {
+                        unset($SESSION->currenteditingcompany);
+                    }
+
+                    return false;
+                }
+
+                // Get the manual enrollment instance for this course
+                $instance = $DB->get_record('enrol', array(
+
+
+                    'courseid' => $courseid,
+                    'enrol' => 'manual'
+                ), '*', IGNORE_MULTIPLE);
+
+                if (!$instance) {
+                    mtrace("No manual enrollment instance found for course {$courseid}");
+
+                    // Restore the original session state
+                    if ($original_session_company !== null) {
+                        $SESSION->currenteditingcompany = $original_session_company;
+                    } else {
+                        unset($SESSION->currenteditingcompany);
+                    }
+
+                    return false;
+                }
+
+                // Enroll the user
+                $enrol->enrol_user($instance, $user->id, $studentrole->id, time());
+            }
+
+            mtrace("Successfully enrolled user {$user->id} in course {$courseid}");
+
+            // Restore the original session state
+            if ($original_session_company !== null) {
+                $SESSION->currenteditingcompany = $original_session_company;
+            } else {
+                unset($SESSION->currenteditingcompany);
+            }
+
+            return true;
+
+        } catch (Exception $e) {
+            mtrace("Error enrolling user {$user->id} in course {$courseid}: " . $e->getMessage());
+
+            // Restore the original session state
+            if ($original_session_company !== null) {
+                $SESSION->currenteditingcompany = $original_session_company;
+            } else {
+                unset($SESSION->currenteditingcompany);
+            }
+
+            return false;
+        }
     }
 }
