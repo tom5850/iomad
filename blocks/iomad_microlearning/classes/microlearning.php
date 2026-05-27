@@ -1212,9 +1212,10 @@ class microlearning {
                  )",
                 ['userid' => $userid,
                  'section' => $cmidrec->section]);
-
-            // If we have everything we need, mark it as completed.
-            if ($requiredcount == $actualcount) {
+//START Thomas: original code checks if ALL modules in the section are completed. This does not work with our multi-language courses. Therefore we check only if one module in the section is completed.
+			//if ($requiredcount == $actualcount) {
+			if ($actualcount>=1) {					  
+//END	 
                 foreach ($nuggets as $nugget) {
                     $found = true;
                     if (empty($threads[$nugget->threadid])) {
@@ -1449,7 +1450,7 @@ class microlearning {
                     if ($nugget = $DB->get_record('microlearning_nugget', ['id' => $reminder1user->nuggetid])) {
                         $company = new company($reminder1user->companyid);
                         // Fix the payload.
-                        $nugget->name = format_text($nugget->name);
+                        //$nugget->name = format_text($nugget->name); //THOMAS: Does not support user's language. Is not needed here, since it will be filled correctly in the email api.
                         $nugget->url = new moodle_url
                         ($company->get_wwwroot() . '/blocks/iomad_microlearning/land.php',
                         [
@@ -1506,7 +1507,7 @@ class microlearning {
                         $company = new company($reminder2user->companyid);
 
                         // Fix the payload.
-                        $nugget->name = format_text($nugget->name);
+                        //$nugget->name = format_text($nugget->name); //THOMAS: Does not support user's language. Is not needed here, since it will be filled correctly in the email api.
                         $nugget->url = new moodle_url(
                             $company->get_wwwroot() . '/blocks/iomad_microlearning/land.php',
                             [
