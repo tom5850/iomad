@@ -34,8 +34,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+global $USER, $DB, $PAGE, $CFG, $SESSION;
 require_once(__DIR__ . '/../config.php');
 require_once($CFG->dirroot . '/my/lib.php');
+require_once($CFG->dirroot . '/local/iomad/lib/iomad.php');
+require_once($CFG->libdir . '/accesslib.php'); // Access library for capabilities functions
 
 redirect_if_major_upgrade_required();
 
@@ -67,7 +70,7 @@ if (empty($CFG->enabledashboard)) {
 if (isguestuser()) {  // Force them to see system default, no editing allowed
     // If guests are not allowed my moodle, send them to front page.
     if (empty($CFG->allowguestmymoodle)) {
-        redirect(new moodle_url('/', array('redirect' => 0)));
+        redirect(new moodle_url('/login/index.php')); //return to login
     }
 
     $userid = null;
@@ -77,119 +80,143 @@ if (isguestuser()) {  // Force them to see system default, no editing allowed
     $strguest = get_string('guest');
     $pagetitle = "$strmymoodle ($strguest)";
 
-} else {        // We are trying to view or edit our own My Moodle page
-    $userid = $USER->id;  // Owner of the page
-    $context = context_user::instance($USER->id);
-    $PAGE->set_blocks_editing_capability('moodle/my:manageblocks');
-    $pagetitle = $strmymoodle;
 }
 
-// Get the My Moodle page info.  Should always return something unless the database is broken.
-company_user::check_dashboard_page();
-if (!$currentpage = my_get_page($userid, MY_PAGE_PRIVATE)) {
-    throw new \moodle_exception('mymoodlesetup');
+// Get the user's company ID (tenant ID)
+$company = iomad::get_my_companyid(context_system::instance(), false);
+
+$systemcontext = context_system::instance();
+$companycontext = $systemcontext;
+
+if (!empty($company)) {
+    $companycontext =  \core\context\company::instance($company);
+	$companycode = $DB->get_field('company', 'code', ['id' => $company]); //get company code, needed to decide which enduser dashboard should be shown
 }
 
-// Start setting up the page
-$params = array();
-$PAGE->set_context($context);
-$PAGE->set_url('/my/index.php', $params);
-$PAGE->set_pagelayout('mydashboard');
-$PAGE->add_body_class('limitedwidth');
-$PAGE->set_pagetype('my-index');
-$PAGE->blocks->add_region('content');
-$PAGE->set_subpage($currentpage->id);
-$PAGE->set_title($pagetitle);
-$PAGE->set_heading($pagetitle);
-
-if (!isguestuser()) {   // Skip default home page for guests
-    if (get_home_page() != HOMEPAGE_MY) {
-        if (optional_param('setdefaulthome', false, PARAM_BOOL)) {
-            set_user_preference('user_home_page_preference', HOMEPAGE_MY);
-        } else if (!empty($CFG->defaulthomepage) && $CFG->defaulthomepage == HOMEPAGE_USER) {
-            $frontpagenode = $PAGE->settingsnav->add(get_string('frontpagesettings'), null, navigation_node::TYPE_SETTING, null);
-            $frontpagenode->force_open();
-            $frontpagenode->add(get_string('makethismyhome'), new moodle_url('/my/', array('setdefaulthome' => true)),
-                    navigation_node::TYPE_SETTING);
+// CROSS-TENANT LOGIN DETECTION
+// When a user logs in via a subdomain (e.g. CompanyB.domain.com), get_my_companyid() automatically
+// sets $SESSION->currenteditingcompany to that subdomain's company. However, if the user doesn't
+// actually belong to that company (no company_users record), we need to find their real primary
+// company and update the session so subsequent requests route them to the correct dashboard.
+if (!empty($company)) {
+    if (!$DB->record_exists('company_users', ['userid' => $USER->id, 'companyid' => $company])) {
+        // User has no company_users record for the detected company.
+        // Look up their actual primary company (most recently used).
+        $usercompanies = $DB->get_records_sql(
+            "SELECT DISTINCT companyid, lastused FROM {company_users}
+              WHERE userid = :userid
+              ORDER BY lastused DESC, companyid DESC",
+            ['userid' => $USER->id]
+        );
+        if (!empty($usercompanies)) {
+            // Switch the session to the user's real company and reload.
+            $actualcompany = reset($usercompanies);
+            if ($actualcompany->companyid != $company) {
+                $SESSION->currenteditingcompany = $actualcompany->companyid;
+                redirect(new moodle_url('/my/'));
+            }
         }
+        // If the user has no company_users record at all, fall through to default routing.
     }
 }
 
-// Toggle the editing state and switches
-if (empty($CFG->forcedefaultmymoodle) && $PAGE->user_allowed_editing()) {
-    if ($reset !== null) {
-        if (!is_null($userid)) {
-            require_sesskey();
-            if (!$currentpage = my_reset_page($userid, MY_PAGE_PRIVATE)) {
-                throw new \moodle_exception('reseterror', 'my');
-            }
-            redirect(new moodle_url('/my'));
-        }
-    } else if ($edit !== null) {             // Editing state was specified
-        $USER->editing = $edit;       // Change editing state
-    } else {                          // Editing state is in session
-        if ($currentpage->userid) {   // It's a page we can edit, so load from session
-            if (!empty($USER->editing)) {
-                $edit = 1;
-            } else {
-                $edit = 0;
-            }
-        } else {
-            // For the page to display properly with the user context header the page blocks need to
-            // be copied over to the user context.
-            if (!$currentpage = my_copy_page($USER->id, MY_PAGE_PRIVATE)) {
-                throw new \moodle_exception('mymoodlesetup');
-            }
-            $context = context_user::instance($USER->id);
-            $PAGE->set_context($context);
-            $PAGE->set_subpage($currentpage->id);
-            // It's a system page and they are not allowed to edit system pages
-            $USER->editing = $edit = 0;          // Disable editing completely, just to be safe
-        }
+/*
+//If TreeSolution Company then ...
+if ($company == 3) {
+// Define user ID (e.g. currently logged in user)
+$userid = $USER->id; // Oder eine spezifische ID: $userid = 123;
+
+
+// Load all capabilities
+$capabilities = $DB->get_records('capabilities');
+
+// Initialise log file
+error_log(print_r("Capability Check for User ID: $userid\n", true));
+
+foreach ($capabilities as $capability) {
+    // Check whether the user has the capability
+    $hascapability = has_capability($capability->name, $companycontext, $userid);
+
+    // Format result
+    $status = $hascapability ? 'YES' : 'NO';
+    $logentry = "{$capability->name}: {$status}";
+
+    // Write to the log file
+    error_log(print_r($logentry, true));
+}
+}
+*/  
+//Default dashboards
+$dashboard_EndUser = '/local/dash/addon/dashboard/dashboard.php?id=2'; //Dash Dashboard
+$dashboard_CompanyManager = '/local/dash/addon/dashboard/dashboard.php?id=3'; //Dash Dashboard
+$dashboard_Journey = '/local/dash/addon/dashboard/dashboard.php?id=7'; //Dash Dashboard
+$dashboard_Default = '/my/default.php'; //Default Moodle dashboard (renamed original index.php)
+
+//Tenant specific dashboards
+//Check if JOURNEY or normal Academy:
+$parts = explode(':', $companycode);
+if (isset($parts[1]) && stripos($parts[1], 'JOURNEY') === 0) {
+    // It says "JOURNEY" after the first colon.
+	$dashboard_EndUser=$dashboard_Journey; //set Journey dashboard as enduser dashboard
+}
+//TreeSolution Demo tenant:
+if ($company == 19) {
+$dashboard_CompanyManager = '/local/dash/addon/dashboard/dashboard.php?id=4'; } //Dashboard with enhanced tag filter for sales
+//Gemeindeverband ICT (GICT):
+if ($company == 44) {
+$dashboard_EndUser = '/local/dash/addon/dashboard/dashboard.php?id=5'; } //Dashboard with library of past e-learnings							 
+
+//error_log("Forwarding to dashboard ...");
+// Ensure we have a valid company.
+if ($company) {
+	// CLIENT ADMINISTRATOR (usually = SysAdmin)
+    // Check if the user has the right to add companies.
+    if (has_capability('block/iomad_company_admin:company_add', $companycontext, $USER->id)) {
+        //error_log("The user is a Client Administrator in the company context.");		
+		redirect(new moodle_url($dashboard_CompanyManager));
     }
-
-    // Add button for editing page
-    $params = array('edit' => !$edit);
-
-    $resetbutton = '';
-    $resetstring = get_string('resetpage', 'my');
-    $reseturl = new moodle_url("$CFG->wwwroot/my/index.php", array('edit' => 1, 'reset' => 1));
-
-    if (!$currentpage->userid) {
-        // viewing a system page -- let the user customise it
-        $editstring = get_string('updatemymoodleon');
-        $params['edit'] = 1;
-    } else if (empty($edit)) {
-        $editstring = get_string('updatemymoodleon');
-    } else {
-        $editstring = get_string('updatemymoodleoff');
-        $resetbutton = $OUTPUT->single_button($reseturl, $resetstring);
+	// PARTNER MANAGER
+    // Check if the user has right to add child companies
+    else if (has_capability('block/iomad_company_admin:company_add_child', $companycontext, $USER->id)) {
+        //error_log("The user is a Partner Manager in the company context.");		
+		redirect(new moodle_url($dashboard_CompanyManager));
     }
+	// ALL OTHER ROLES: load from company_users table
+	else {
+		$companyuser = $DB->get_record('company_users', ['userid' => $USER->id, 'companyid' => $company]);
 
-    $url = new moodle_url("$CFG->wwwroot/my/index.php", $params);
-    $button = '';
-    if (!$PAGE->theme->haseditswitch) {
-        $button = $OUTPUT->single_button($url, $editstring);
-    }
-    $PAGE->set_button($resetbutton . $button);
-
+		// COMPANY MANAGER
+		if (!empty($companyuser) && $companyuser->managertype == 1) {
+			//error_log("The user is a Company Manager in the company context.");
+			redirect(new moodle_url($dashboard_CompanyManager));
+		}
+		// COMPANY REPORTER ONLY
+		else if (!empty($companyuser) && $companyuser->managertype == 4) {
+			//error_log("The user is a Company Reporter Only in the company context.");
+			redirect(new moodle_url($dashboard_EndUser));
+		}
+		// DEPARTMENT MANAGER + EDUCATOR
+		else if (!empty($companyuser) && $companyuser->managertype == 2 && $companyuser->educator == 1) {
+			//error_log("The user is a Department Manager and Educator in the company context.");
+			redirect(new moodle_url($dashboard_CompanyManager));
+		}
+		// DEPARTMENT MANAGER only
+		else if (!empty($companyuser) && $companyuser->managertype == 2) {
+			//error_log("The user is a Department Manager (no educator) in the company context.");
+			redirect(new moodle_url($dashboard_EndUser));
+		}
+		// STUDENT
+		else if (!empty($companyuser) && $companyuser->managertype == 0) {
+			//error_log("The user is a Student in the company context.");
+			redirect(new moodle_url($dashboard_EndUser));
+		}
+		// FALLBACK
+		else {
+			//error_log("The user role could not be determined in the company context.");
+			redirect(new moodle_url($dashboard_Default));
+		}
+	}
 } else {
-    $USER->editing = $edit = 0;
+    //error_log("User does not belong to any company (tenant).");
+		redirect(new moodle_url($dashboard_Default));
 }
-
-echo $OUTPUT->header();
-
-if (core_userfeedback::should_display_reminder()) {
-    core_userfeedback::print_reminder_block();
-}
-
-echo $OUTPUT->addblockbutton('content');
-
-echo $OUTPUT->custom_block_region('content');
-
-echo $OUTPUT->footer();
-
-// Trigger dashboard has been viewed event.
-$eventparams = array('context' => $context);
-$event = \core\event\dashboard_viewed::create($eventparams);
-$event->trigger();
