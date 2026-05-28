@@ -808,7 +808,7 @@ class current_user_course_selector extends company_course_selector_base {
                     unset($coursearray[$courseid]);
                 }
             }
-            $this->process_shortname($coursearray);
+            //$this->process_shortname($coursearray); //THOMAS 28.5.26: not needed, looks ugly and will then be added also in the email
             $this->process_hidden_courses($coursearray);
 
             return array($groupname => $coursearray);
@@ -966,7 +966,7 @@ class potential_user_course_selector extends company_course_selector_base {
         if (empty($availablecourses)) {
             return [];
         }
-        $this->process_shortname($availablecourses);
+        //$this->process_shortname($availablecourses);  //THOMAS 28.5.26: not needed, looks ugly and will then be added also in the email
         $this->process_hidden_courses($availablecourses);
 
         if ($search) {
