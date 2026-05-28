@@ -1437,8 +1437,9 @@ class microlearning {
                  mtu.reminder1_date < mtu.due_date
                  OR mtu.due_date = 0
              )
-             AND mtu.reminder1_date < :runtime",
-            ['runtime' => $runtime])) {
+             AND mtu.reminder1_date < :runtime
+             AND (mtu.due_date > :runtime2 OR mtu.due_date = 0)", //THOMAS, 27.5.26: send only if due date is not passed
+            ['runtime' => $runtime, 'runtime2' => $runtime])) {
             foreach ($reminder1users as $reminder1user) {
                 $reminder1user->reminder1_delivered = true;
 
@@ -1492,8 +1493,9 @@ class microlearning {
                  mtu.reminder2_date < mtu.due_date
                  OR mtu.due_date = 0
              )
-             AND mtu.reminder2_date < :runtime",
-            ['runtime' => $runtime])) {
+             AND mtu.reminder2_date < :runtime
+             AND (mtu.due_date > :runtime2 OR mtu.due_date = 0)", //THOMAS, 27.5.26: send only if due date is not passed
+            ['runtime' => $runtime, 'runtime2' => $runtime])) {
             foreach ($reminder2users as $reminder2user) {
                 $reminder2user->reminder2_delivered = true;
                 $reminder2user->reminder1_delivered = true;
