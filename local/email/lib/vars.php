@@ -287,7 +287,7 @@ class EmailVars {
 
 			return $returnurl;
 	//END
-		}
+	}
 
 
-}
+} 
