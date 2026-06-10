@@ -86,6 +86,17 @@ class enroluserstask extends adhoc_task {
                 $duedate
             );
 
+            $DB->execute("UPDATE {local_iomad_track}
+                          SET companyid = :companyid
+                          WHERE userid = :userid
+                          AND courseid = :courseid
+                          AND companyid = 1
+                          AND coursecleared = 0
+                          AND timecompleted IS NULL",
+                          ['companyid' => $companyid,
+                           'userid' => $userid,
+                           'courseid' => $courseid]);
+
             // Send the email.
             EmailTemplate::send(
                 'user_added_to_course',
