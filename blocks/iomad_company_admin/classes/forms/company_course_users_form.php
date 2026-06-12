@@ -349,7 +349,7 @@ class company_course_users_form extends moodleform {
             if (!empty($userstoassign)) {
 
                 $duedate = 0;
-                if (!empty($data) && !empty($data->due)) {
+                if (!empty($data->due)) {
                     $duedate = $data->due;
                 }
 

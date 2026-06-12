@@ -38,6 +38,8 @@ use company;
 use company_user;
 use context_course;
 use context_system;
+use core_date;
+use DateTime;
 use EmailTemplate;
 use Exception;
 use html_writer;
@@ -759,11 +761,19 @@ class microlearning {
         // Do we have a schedule type?
         if (!empty($scheduletype)) {
             if ($scheduletype == 1) {
-                $date = new \DateTime("today midnight", \core_date::get_user_timezone_object($user));
+                // We want midnight from this morning.
+                $date = new DateTime(
+                    'today midnight',
+                    core_date::get_user_timezone_object($user)
+                );
                 $starttime = $date->getTimestamp();
             } else {
+                // We want midnight for the morning of the day of the next scheduled time.
                 $nextscheduled = self::get_next_scheduled($threadid);
-                $date = new \DateTime("@" . $nextscheduled, \core_date::get_user_timezone_object($user));
+                $date = new DateTime(
+                    '@' . $nextscheduled,
+                    core_date::get_user_timezone_object($user)
+                );
                 $date->setTime(0, 0, 0);
                 $starttime = $date->getTimestamp();
             }

@@ -265,7 +265,7 @@ class company_users_course_form extends moodleform {
 
                     if ($allow) {
                         $duedate = 0;
-                        if (!empty($data) && !empty($data->due)) {
+                        if (!empty($data->due)) {
                             $duedate = $data->due;
                         }
                         company_user::enrol($this->user, [$addcourse->id], $this->selectedcompany, false, false, $duedate);
