@@ -198,19 +198,28 @@ class company_user {
             if ($createpassword) {
                 set_user_preference('create_password', 1, $user->id);
                 $user->newpassword = generate_password();
-                if (!empty($CFG->iomad_email_senderisreal)) {
-                    EmailTemplate::send('user_create', ['user' => $user, 'sender' => $USER, 'due' => $data->due]);
-                } else if (is_siteadmin($USER->id)) {
-                    EmailTemplate::send('user_create', ['user' => $user, 'due' => $data->due]);
-                } else {
-                    EmailTemplate::send(
-                        'user_create',
-                        [
-                            'user' => $user,
-                            'due' => $data->due,
-                            'headers' => $headers,
-                        ]
-                    );
+                if ($sendemail) {
+                    if (!empty($CFG->iomad_email_senderisreal)) {
+                        EmailTemplate::send(
+                            'user_create',
+                            [
+                                'user' => $user,
+                                'sender' => $USER,
+                                'due' => $data->due
+                            ]
+                        );
+                    } else if (is_siteadmin($USER->id)) {
+                        EmailTemplate::send('user_create', ['user' => $user, 'due' => $data->due]);
+                    } else {
+                        EmailTemplate::send(
+                            'user_create',
+                            [
+                                'user' => $user,
+                                'due' => $data->due,
+                                'headers' => $headers,
+                            ]
+                        );
+                    }
                 }
                 $sendemail = false;
             }
@@ -647,6 +656,7 @@ class company_user {
                             'courseid' => $courseid,
                             'context' => \context_course::instance($courseid),
                             'relateduserid' => $user->id,
+                            'companyid' => $companyid,
                             'other' => ['enrol' => 'manual'],
                         ]
                     );
@@ -1301,15 +1311,15 @@ class company_user {
                 if ($trainigevents = $DB->get_records('trainingevent', ['course' => $courseid])){
                     foreach ($trainigevents as $trainigevent) {
                         $DB->delete_records(
-                            'trainingevent_user',
-                            ['trainigeventid' => $trainigevent->id, 'userid' => $userid]
+                            'trainingevent_users',
+                            ['trainingeventid' => $trainigevent->id, 'userid' => $userid]
                         );
                     }
                 }
 
                 // Remove LTI information.
                 if (enrol_is_enabled('lti')) {
-                    $coursecontext = context_course::instance($courseid);
+                    $contextcourse = context_course::instance($courseid);
                     if ($ltitools = $DB->get_record('enrol_lti_tools', ['contextid' => $contextcourse->id])) {
                         foreach ($ltitools as $ltitool) {
                             $DB->set_value(
@@ -1352,7 +1362,7 @@ class company_user {
                 if ($DB->record_exists('modules', ['name' => 'hvp'])) {
                     if ($hvps = $DB->get_records('hvp', ['course' => $courseid])) {
                         foreach ($hvps as $hvp) {
-                            $DB->delete_records('hvp_content_user_data', ['hvp_id' => $hvp->id, 'userid' => $userid]);
+                            $DB->delete_records('hvp_content_user_data', ['hvp_id' => $hvp->id, 'user_id' => $userid]);
                         }
                     }
                 }
